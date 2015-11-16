@@ -21,6 +21,8 @@ global A_stime
 A_stime = '%Y-%m-%d %H:%M:%S'
 global A_addr
 A_addr = "http://" + str(C_host) + ":" + str(C_port) + "/"
+
+#FUNCTIONS
 def decode_parameters(url):
 	if not "?" in url:
 		return
@@ -57,6 +59,7 @@ def demultiplex_item(content,type):
 		return "<html>\n" + html + "\n" + e + "\n</body>\n" + r + "\n</html>"
 	else:
 		return "<html>\n" + html + "\n</body>\n" + r + "\n</html>"
+
 def handle_gettime(listt,target,total):
 	p=0;total = total + 0.0;
 	for i,r in enumerate(listt):
@@ -66,93 +69,99 @@ def handle_gettime(listt,target,total):
 				return 0
 			else:
 				return int(i)-1
-	#return len(listt)-1
+
 def handle_calcitem(listt,id):
 	p = 0
 	for v,i in enumerate(listt):
 		p = p + int(i)
 		if v == int(id):
 			return p;
-def handle_timing(seconds,currid,total_round,timeing):
-	if handle_calcitem(timeing,currid) <= seconds:
-		a = seconds + handle_calcitem(timeing,currid) + 0.0;
+
+def handle_timing(seconds,currid,total_round,time_blocks):
+	if handle_calcitem(time_blocks,currid) <= seconds:
+		a = seconds + handle_calcitem(time_blocks,currid) + 0.0;
 		if (a/total_round) >= 1:
 			b = (a/total_round) - math.floor(a/total_round);b = b*total_round;
-			return handle_gettime(timeing,b,total_round)
+			return handle_gettime(time_blocks,b,total_round)
 		else:
-			return handle_gettime(timeing,a,total_round)
+			return handle_gettime(time_blocks,a,total_round)
 	else:
 		return int(currid)
+def handle_DisplayUpdate(p):
+	#CHECK if device exists
+	A_mysql_cur = A_mysql.cursor()
+	A_mysql_cur.execute("SELECT * FROM m_push WHERE device = %s", (p["d"], ))
+	if not A_mysql_cur.rowcount == 1:return None;
+	display_group = A_mysql_cur.fetchone()
+
+	#CALCULATE NEXT TIME AND TOTAL TIME
+	total_round_duration = 0
+	content = str(display_group[2]).split("|");
+	time_blocks = list();itemlist = list();
+	if int(display_group[4]) == 0:
+		for a in content:
+			b = a.split(";")
+			time_blocks.append(b[1])
+			itemlist.append(b[0])
+			total_round_duration = total_round_duration + int(b[1])
+		time_gap = time_blocks[int(display_group[1])]
+	else:
+		for a in content:
+			b = a.split(";")
+			itemlist.append(b[0])
+			time_blocks.append(display_group[4])
+			total_round_duration = int(display_group[4]) + total_round_duration
+		time_gap = int(display_group[4])
+
+	#CALCULATE TIMEDIFFERENCE
+	then = datetime.datetime.strptime(display_group[3], A_stime)
+	now = datetime.datetime.now()
+	time_passed = now - then;time_passed = time_passed.seconds;
+
+	#HANDLE
+	if time_passed >= int(time_gap):
+		#NEXT
+		predicted_item = handle_timing(time_passed,display_group[1],total_round_duration,time_blocks);
+		if len(itemlist) <= predicted_item+1:
+			predicted_item = 0;
+		else:
+			predicted_item = predicted_item+1
+
+		#GET ITEM
+		A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (itemlist[predicted_item], )) #GET ITEM
+		if not A_mysql_cur.rowcount == 1:return None;
+		display_item = A_mysql_cur.fetchone()
+
+		A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s WHERE device = %s", (predicted_item,now.strftime(A_stime),str(p["d"]), )) #GET ITEM
+		A_mysql.commit()
+
+		return demultiplex_item(display_item[3],display_item[2])
+	else:
+		#STAY
+		predicted_item = handle_timing(time_passed,display_group[1],total_round_duration,time_blocks);
+		A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (itemlist[predicted_item], )) #GET ITEM
+		if not A_mysql_cur.rowcount == 1:return None;
+		display_item = A_mysql_cur.fetchone()
+
+		return demultiplex_item(display_item[3],display_item[2])
+
 def handle_command(headers,soc):
 	p = decode_parameters(headers["Path"]);
 	if ("d" in p) and ("c" in p):
 		if p["c"] == "GET": #Display Get
-			#CHECK if device exists
-			A_mysql_cur = A_mysql.cursor()
-			A_mysql_cur.execute("SELECT * FROM m_push WHERE device = %s", (p["d"], ))
-			if not A_mysql_cur.rowcount == 1:
-				return "UNKNOWN"
-			else:
-				push = A_mysql_cur.fetchone()
-
-			#CALCULATE NEXT TIME AND TOTAL TIME
-			tot_length = 0
-			content = str(push[2]).split("|");
-			timeing = list();idlist = list();
-			if int(push[4]) == 0:
-				for a in content:
-					b = a.split(";")
-					timeing.append(b[1])
-					idlist.append(b[0])
-					tot_length = tot_length + int(b[1])
-				curr_time = timeing[int(push[1])]
-			else:
-				for a in content:
-					b = a.split(";")
-					idlist.append(b[0])
-					timeing.append(push[4])
-					tot_length = int(push[4]) + tot_length
-				curr_time = int(push[4])
-			#CALCULATE TIMEDIFFERENCE
-			then = datetime.datetime.strptime(push[3], A_stime)
-			now = datetime.datetime.now()
-			diff = now - then
-			diff = diff.seconds
-
-			#HANDLE
-			if diff >= int(curr_time):
-				#NEXT
-				cnt = handle_timing(diff,push[1],tot_length,timeing);
-				if len(idlist) <= cnt+1:
-					cnt = 0;
-				else:
-					cnt = cnt+1
-				id = cnt;content = idlist[cnt];
-
-				#GET ITEM
-				A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (content, )) #GET ITEM
-				item = A_mysql_cur.fetchone()
-				A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s WHERE device = %s", (id,now.strftime(A_stime),str(p["d"]), )) #GET ITEM
-				A_mysql.commit()
-				return demultiplex_item(item[3],item[2])
-			else:
-				#STAY
-				cnt = handle_timing(diff,push[1],tot_length,timeing);
-				A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (idlist[cnt], )) #GET ITEM
-				if A_mysql_cur.rowcount == 1:
-					item = A_mysql_cur.fetchone()
-					return demultiplex_item(item[3],item[2])
-				else:
-					return "UNKNOWN"
+			return handle_DisplayUpdate(p)
 		else:
 			#Command not known
-			return "UNKNOWN"
+			return None
 
 def senddata(data,type,cl):
     cl.send('HTTP/1.1 200 OK' + '\n' + 'Access-Control-Allow-Origin: *\nAccess-Control-Allow-Headers:x-device\nCache-Control: no-cache, no-store, must-revalidate' + '\n' + 'Pragma: no-cache' + '\n' + 'Expires: 0' + '\n' + 'Content-length: ' + str(len(data)) + '\n'+ type+ '\n' + '\n' + data)
+def senderror(cl):
+	senddata(demultiplex_item("",0),"Content-type: text/html",cl);
 def readdata(file):
     with open(file, "rb") as image_file:
 	return image_file.read()      
+
 def decode_header(raw):
 	raw_headers = raw.split("\r\n");headers = dict();
 	if raw_headers[0][:3] == "OPT":
@@ -179,12 +188,12 @@ def handler(clientsocket, clientaddr):
 		try:
 			headers = decode_header(rec_data)
 			if None == headers:
-				senddata(demultiplex_item("",0),"Content-type: text/html",clientsocket)
+				senddata(clientsocket)
 				break
 			if headers["Path"][:2] == "/?":
 				encoded_string = handle_command(headers,clientsocket)
-				if encoded_string == "UNKNOWN":
-					senddata(demultiplex_item("",0),"Content-type: text/html",clientsocket)
+				if encoded_string == None:
+					senddata(clientsocket)
 				else:
 					senddata(encoded_string,"Content-type: text/html",clientsocket)
 			elif headers["Path"][:5] == "/img/":
@@ -192,14 +201,14 @@ def handler(clientsocket, clientaddr):
 				if os.path.isfile(path):
 					senddata(readdata(path),"Content-type: image/png",clientsocket)
 				else:
-					senddata(demultiplex_item("",0),"Content-type: text/html",clientsocket)
+					senddata(clientsocket)
 			else:
 				if "error" in headers["Path"]:
 					senddata(readdata("error.jpg"),"Content-type: image/png",clientsocket)
 				else:
-					senddata(demultiplex_item("",0),"Content-type: text/html",clientsocket)
+					senddata(clientsocket)
 		except:
-			senddata(demultiplex_item("",0),"Content-type: text/html",clientsocket)
+			senddata(clientsocket)
 			raise
 
 if __name__ == "__main__":

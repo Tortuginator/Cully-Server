@@ -193,7 +193,7 @@ def handler(clientsocket, clientaddr):
 			if headers["Path"][:2] == "/?":
 				encoded_string = handle_command(headers,clientsocket)
 				if encoded_string == None:
-					senddata(clientsocket)
+					senderror(clientsocket)
 				else:
 					senddata(encoded_string,"Content-type: text/html",clientsocket)
 			elif headers["Path"][:5] == "/img/":
@@ -201,14 +201,14 @@ def handler(clientsocket, clientaddr):
 				if os.path.isfile(path):
 					senddata(readdata(path),"Content-type: image/png",clientsocket)
 				else:
-					senddata(clientsocket)
+					senderror(clientsocket)
 			else:
 				if "error" in headers["Path"]:
 					senddata(readdata("error.jpg"),"Content-type: image/png",clientsocket)
 				else:
-					senddata(clientsocket)
+					senderror(clientsocket)
 		except:
-			senddata(clientsocket)
+			senderror(clientsocket)
 			raise
 
 if __name__ == "__main__":

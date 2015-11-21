@@ -88,6 +88,7 @@ def handle_timing(seconds,currid,total_round,time_blocks):
 	else:
 		return int(currid)
 def handle_DisplayUpdate(p):
+	#ALGORITHM COPYRIGHT FELIX FRIEDBERGER 2015/2016 DO NOT DISTRIBUTE FREELY
 	#CHECK if device exists
 	A_mysql_cur = A_mysql.cursor()
 	A_mysql_cur.execute("SELECT * FROM m_push WHERE device = %s", (p["d"], ))
@@ -132,6 +133,7 @@ def handle_DisplayUpdate(p):
 		if not A_mysql_cur.rowcount == 1:return None;
 		display_item = A_mysql_cur.fetchone()
 
+		#UPDATE TIMEING + CURRENT STATUS
 		A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s WHERE device = %s", (predicted_item,now.strftime(A_stime),str(p["d"]), )) #GET ITEM
 		A_mysql.commit()
 

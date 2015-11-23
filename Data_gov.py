@@ -3,9 +3,11 @@ import xmltodict
 import math
 import sys
 import json
-#SINGAPORE PSI LEVELS
-API_KEY = sys.argv[1];
 
+if 1 in sys.argv:
+	API_KEY = sys.argv[1];
+
+#SINGAPORE PSI LEVELS
 def GetDataAirQ():
     file = urllib2.urlopen('http://www.nea.gov.sg/api/WebAPI?dataset=psi_update&keyref=' + API_KEY)
     data = file.read()

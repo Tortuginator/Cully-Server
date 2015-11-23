@@ -8,6 +8,7 @@ import MySQLdb
 import datetime
 import math
 import __future__
+import Data_gov
 #SETTINGS
 global C_buffer
 C_buffer = 1024*2
@@ -21,6 +22,7 @@ global A_stime
 A_stime = '%Y-%m-%d %H:%M:%S'
 global A_addr
 A_addr = "http://" + str(C_host) + ":" + str(C_port) + "/"
+
 
 #FUNCTIONS
 def decode_parameters(url):
@@ -39,7 +41,7 @@ def decode_parameters(url):
 	return p
 
 def demultiplex_item(content,type):
-	overl = 1
+	overl = 0
 	e = '<div style="position:absolute;bottom:0;right:0;height:250px;background-color:red;width:250px;"><center><p style="text-align:center;color: white;font-size: 30px;margin:0px;margin-top:20px;margin-bottom:20px;">PSI</p><p style="padding: 0px;margin: 0px;text-align:center;color:white;font-size:100px;">135</p></center></div>'
 	r = '<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700,300" rel="stylesheet" type="text/css">'#basefont style
 	c = "font-family: 'Open Sans', sans-serif;margin:0px;padding:0px;"
@@ -86,7 +88,8 @@ def handle_timing(seconds,currid,total_round,time_blocks):
 		else:
 			return handle_gettime(time_blocks,a,total_round)
 	else:
-		return int(currid)
+		return int(currid);
+
 def handle_DisplayUpdate(p):
 	#ALGORITHM COPYRIGHT FELIX FRIEDBERGER 2015/2016 DO NOT DISTRIBUTE FREELY
 	#CHECK if device exists
@@ -99,13 +102,14 @@ def handle_DisplayUpdate(p):
 	total_round_duration = 0
 	content = str(display_group[2]).split("|");
 	time_blocks = list();itemlist = list();
+	t_dpgroup = int(display_group[1]);
 	if int(display_group[4]) == 0:
 		for a in content:
 			b = a.split(";")
 			time_blocks.append(b[1])
 			itemlist.append(b[0])
 			total_round_duration = total_round_duration + int(b[1])
-		time_gap = time_blocks[int(display_group[1])]
+		time_gap = time_blocks[t_dpgroup];
 	else:
 		for a in content:
 			b = a.split(";")
@@ -122,7 +126,7 @@ def handle_DisplayUpdate(p):
 	#HANDLE
 	if time_passed >= int(time_gap):
 		#NEXT
-		predicted_item = handle_timing(time_passed,display_group[1],total_round_duration,time_blocks);
+		predicted_item = handle_timing(time_passed,t_dpgroup,total_round_duration,time_blocks);
 		if len(itemlist) <= predicted_item+1:
 			predicted_item = 0;
 		else:
@@ -140,7 +144,7 @@ def handle_DisplayUpdate(p):
 		return demultiplex_item(display_item[3],display_item[2])
 	else:
 		#STAY
-		predicted_item = handle_timing(time_passed,display_group[1],total_round_duration,time_blocks);
+		predicted_item = handle_timing(time_passed,t_dpgroup,total_round_duration,time_blocks);
 		A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (itemlist[predicted_item], )) #GET ITEM
 		if not A_mysql_cur.rowcount == 1:return None;
 		display_item = A_mysql_cur.fetchone()
@@ -158,8 +162,10 @@ def handle_command(headers,soc):
 
 def senddata(data,type,cl):
     cl.send('HTTP/1.1 200 OK' + '\n' + 'Access-Control-Allow-Origin: *\nAccess-Control-Allow-Headers:x-device\nCache-Control: no-cache, no-store, must-revalidate' + '\n' + 'Pragma: no-cache' + '\n' + 'Expires: 0' + '\n' + 'Content-length: ' + str(len(data)) + '\n'+ type+ '\n' + '\n' + data)
+
 def senderror(cl):
 	senddata(demultiplex_item("",0),"Content-type: text/html",cl);
+
 def readdata(file):
     with open(file, "rb") as image_file:
 	return image_file.read()      
@@ -199,9 +205,9 @@ def handler(clientsocket, clientaddr):
 				else:
 					senddata(encoded_string,"Content-type: text/html",clientsocket)
 			elif headers["Path"][:5] == "/img/":
-				path = headers["Path"];path = path.replace("/img/","storage/");
-				if os.path.isfile(path):
-					senddata(readdata(path),"Content-type: image/png",clientsocket)
+				path = headers["Path"];path = path.replace("/img/","C:\\xampp\\htdocs\\php\\storage\\");
+				if os.path.isfile(path + ".file"):
+					senddata(readdata(path + ".file"),"Content-type: image/png",clientsocket)
 				else:
 					senderror(clientsocket)
 			else:

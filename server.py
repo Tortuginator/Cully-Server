@@ -103,29 +103,22 @@ def handle_DisplayUpdate(p):
 	content = str(display_group[2]).split("|");
 	time_blocks = list();itemlist = list();
 	t_dpgroup = int(display_group[1]);
-	if int(display_group[4]) == 0:
-		for a in content:
-			b = a.split(";")
-			time_blocks.append(b[1])
-			itemlist.append(b[0])
-			total_round_duration = total_round_duration + int(b[1])
-		time_gap = time_blocks[t_dpgroup];
-	else:
-		for a in content:
-			b = a.split(";")
-			itemlist.append(b[0])
-			time_blocks.append(display_group[4])
-			total_round_duration = int(display_group[4]) + total_round_duration
-		time_gap = int(display_group[4])
+
+	for a in content:
+		b = a.split(";")
+		time_blocks.append(b[1])
+		itemlist.append(b[0])
+		total_round_duration = total_round_duration + int(b[1])
+	time_gap = time_blocks[t_dpgroup];
 
 	#CALCULATE TIMEDIFFERENCE
 	then = datetime.datetime.strptime(display_group[3], A_stime)
 	now = datetime.datetime.now()
 	time_passed = now - then;time_passed = time_passed.seconds;
 
-	#HANDLE
-	if time_passed >= int(time_gap):
-		#NEXT
+	#HANDLE IF NEXT ITEM OR STAY WITH ITEM
+	if time_passed >= int(time_gap): #NEXT ITEM
+		
 		predicted_item = handle_timing(time_passed,t_dpgroup,total_round_duration,time_blocks);
 		if len(itemlist) <= predicted_item+1:
 			predicted_item = 0;
@@ -162,10 +155,8 @@ def handle_command(headers,soc):
 
 def senddata(data,type,cl):
     cl.send('HTTP/1.1 200 OK' + '\n' + 'Access-Control-Allow-Origin: *\nAccess-Control-Allow-Headers:x-device\nCache-Control: no-cache, no-store, must-revalidate' + '\n' + 'Pragma: no-cache' + '\n' + 'Expires: 0' + '\n' + 'Content-length: ' + str(len(data)) + '\n'+ type+ '\n' + '\n' + data)
-
 def senderror(cl):
 	senddata(demultiplex_item("",0),"Content-type: text/html",cl);
-
 def readdata(file):
     with open(file, "rb") as image_file:
 	return image_file.read()      

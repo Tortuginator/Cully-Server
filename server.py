@@ -41,7 +41,7 @@ def decode_parameters(url):
 	return p
 
 def demultiplex_item(content,type):
-	overl = 0
+	overl = 0 #Activate PSI overlay
 	e = '<div style="position:absolute;bottom:0;right:0;height:250px;background-color:red;width:250px;"><center><p style="text-align:center;color: white;font-size: 30px;margin:0px;margin-top:20px;margin-bottom:20px;">PSI</p><p style="padding: 0px;margin: 0px;text-align:center;color:white;font-size:100px;">135</p></center></div>'
 	r = '<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700,300" rel="stylesheet" type="text/css">'#basefont style
 	c = "font-family: 'Open Sans', sans-serif;margin:0px;padding:0px;"
@@ -96,53 +96,56 @@ def handle_DisplayUpdate(p):
 	A_mysql_cur = A_mysql.cursor()
 	A_mysql_cur.execute("SELECT * FROM m_push WHERE device = %s", (p["d"], ))
 	if not A_mysql_cur.rowcount == 1:return None;
-	display_group = A_mysql_cur.fetchone()
+	display_sql = A_mysql_cur.fetchone()
 
 	#CALCULATE NEXT TIME AND TOTAL TIME
 	total_round_duration = 0
-	content = str(display_group[2]).split("|");
+	content = str(display_sql[2]).split("|");#split content into frames
 	time_blocks = list();itemlist = list();
-	t_dpgroup = int(display_group[1]);
+	t_dpgroup = int(display_sql[1]);#Active Group
 
-	for a in content:
-		b = a.split(";")
-		time_blocks.append(b[1])
-		itemlist.append(b[0])
-		total_round_duration = total_round_duration + int(b[1])
+	for frame in content:
+		bframe = frame.split(";");
+		time_blocks.append(bframe[1]);
+		itemlist.append(bframe[0]);
+		total_round_duration = total_round_duration + int(bframe[1]);
+
 	time_gap = time_blocks[t_dpgroup];
 
 	#CALCULATE TIMEDIFFERENCE
-	then = datetime.datetime.strptime(display_group[3], A_stime)
+	then = datetime.datetime.strptime(display_sql[3], A_stime)
 	now = datetime.datetime.now()
 	time_passed = now - then;time_passed = time_passed.seconds;
 
 	#HANDLE IF NEXT ITEM OR STAY WITH ITEM
 	if time_passed >= int(time_gap): #NEXT ITEM
 		
-		predicted_item = handle_timing(time_passed,t_dpgroup,total_round_duration,time_blocks);
-		if len(itemlist) <= predicted_item+1:
-			predicted_item = 0;
+		calculated_item = handle_timing(time_passed,t_dpgroup,total_round_duration,time_blocks);
+
+		#Check if nextitem is 0 or +1
+		if len(itemlist) <= calculated_item+1:
+			calculated_item = 0;
 		else:
-			predicted_item = predicted_item+1
+			calculated_item = calculated_item+1
 
 		#GET ITEM
-		A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (itemlist[predicted_item], )) #GET ITEM
+		A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (itemlist[calculated_item], )) #GET ITEM
 		if not A_mysql_cur.rowcount == 1:return None;
-		display_item = A_mysql_cur.fetchone()
+		display_sql = A_mysql_cur.fetchone()
 
 		#UPDATE TIMEING + CURRENT STATUS
-		A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s WHERE device = %s", (predicted_item,now.strftime(A_stime),str(p["d"]), )) #GET ITEM
+		A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s WHERE device = %s", (calculated_item,now.strftime(A_stime),str(p["d"]), )) #GET ITEM
 		A_mysql.commit()
 
-		return demultiplex_item(display_item[3],display_item[2])
+		return demultiplex_item(display_sql[3],display_sql[2])
 	else:
 		#STAY
-		predicted_item = handle_timing(time_passed,t_dpgroup,total_round_duration,time_blocks);
-		A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (itemlist[predicted_item], )) #GET ITEM
+		calculated_item = handle_timing(time_passed,t_dpgroup,total_round_duration,time_blocks);
+		A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (itemlist[calculated_item], )) #GET ITEM
 		if not A_mysql_cur.rowcount == 1:return None;
-		display_item = A_mysql_cur.fetchone()
+		display_sql = A_mysql_cur.fetchone()
 
-		return demultiplex_item(display_item[3],display_item[2])
+		return demultiplex_item(display_sql[3],display_sql[2])
 
 def handle_command(headers,soc):
 	p = decode_parameters(headers["Path"]);
@@ -155,8 +158,10 @@ def handle_command(headers,soc):
 
 def senddata(data,type,cl):
     cl.send('HTTP/1.1 200 OK' + '\n' + 'Access-Control-Allow-Origin: *\nAccess-Control-Allow-Headers:x-device\nCache-Control: no-cache, no-store, must-revalidate' + '\n' + 'Pragma: no-cache' + '\n' + 'Expires: 0' + '\n' + 'Content-length: ' + str(len(data)) + '\n'+ type+ '\n' + '\n' + data)
+
 def senderror(cl):
 	senddata(demultiplex_item("",0),"Content-type: text/html",cl);
+
 def readdata(file):
     with open(file, "rb") as image_file:
 	return image_file.read()      

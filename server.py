@@ -9,6 +9,7 @@ import datetime
 import math
 import __future__
 import Data_gov
+import pages
 #SETTINGS
 global C_buffer
 C_buffer = 1024*2
@@ -42,25 +43,7 @@ def decode_parameters(url):
 
 def demultiplex_item(content,type):
 	overl = 0 #Activate PSI overlay
-	e = '<div style="position:absolute;bottom:0;right:0;height:250px;background-color:red;width:250px;"><center><p style="text-align:center;color: white;font-size: 30px;margin:0px;margin-top:20px;margin-bottom:20px;">PSI</p><p style="padding: 0px;margin: 0px;text-align:center;color:white;font-size:100px;">135</p></center></div>'
-	r = '<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700,300" rel="stylesheet" type="text/css">'#basefont style
-	c = "font-family: 'Open Sans', sans-serif;margin:0px;padding:0px;"
-	t = int(type)
-	if t == 1: #LIVE TIME TABLE
-		html = content
-	elif t == 2: #TEXT MESSAGE
-		html = content
-	elif t == 3: #MANUAL HTML
-		b = '<body style = "%s">\n%s\n</body>\n</html>\n' % (c,content)
-		html = b
-	elif t == 4: #FULLSOZE IMAGE
-		html = '<body style="' + c + 'background-image:url(\'' + A_addr + 'img/' + content + '\');background-position: right top;background-size: 100%;">'
-	else:
-		html = '<body style="margin:0px;padding:0px;background-color:#f3f4f4;"><img src="' + A_addr + 'error.jpg" style="height:600px;width:800px;display: block;margin-left: auto;margin-right: auto"></src>'
-	if overl == 1:
-		return "<html>\n" + html + "\n" + e + "\n</body>\n" + r + "\n</html>"
-	else:
-		return "<html>\n" + html + "\n</body>\n" + r + "\n</html>"
+	return pages.GetPage(A_addr,type,content,overl)
 
 def handle_gettime(listt,target,total):
 	p=0;total = total + 0.0;

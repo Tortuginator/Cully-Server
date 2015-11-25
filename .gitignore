@@ -45,3 +45,4 @@ error.jpg
 storage/2.jpg
 storage/1.jpg
 *.bat
+*.pyc

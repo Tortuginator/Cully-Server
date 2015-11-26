@@ -11,6 +11,7 @@ import __future__
 import Data_gov
 import pages
 import configuration
+import logging
 #SETTINGS
 global C_buffer
 C_buffer = configuration.Config_Server_buffer
@@ -25,7 +26,8 @@ A_stime = configuration.Config_Server_TimeFormat
 global A_addr
 A_addr = "http://" + str(C_host) + ":" + str(C_port) + "/"
 
-
+#Log INIT
+logging.basicConfig(filename="server_er.log",level=logging.DEBUG)
 #FUNCTIONS
 def decode_parameters(url):
 	if not "?" in url:
@@ -64,72 +66,79 @@ def handle_calcitem(listt,id):
 			return p;
 
 def handle_timing(seconds,currid,total_round,time_blocks):
-	if handle_calcitem(time_blocks,currid) <= seconds:
-		a = seconds + handle_calcitem(time_blocks,currid) + 0.0;
-		if (a/total_round) >= 1:
-			b = (a/total_round) - math.floor(a/total_round);b = b*total_round;
-			return handle_gettime(time_blocks,b,total_round)
-		else:
-			return handle_gettime(time_blocks,a,total_round)
+	time_c_item = handle_calcitem(time_blocks,currid)
+	if time_c_item < seconds:
+		a = seconds + time_c_item;
+		b = a%time_c_item;
+		return handle_gettime(time_blocks,b,total_round)
 	else:
 		return int(currid);
 
 def handle_DisplayUpdate(p):
 	#ALGORITHM COPYRIGHT FELIX FRIEDBERGER 2015/2016 DO NOT DISTRIBUTE FREELY
 	#CHECK if device exists
-	A_mysql_cur = A_mysql.cursor()
-	A_mysql_cur.execute("SELECT * FROM m_push WHERE device = %s", (p["d"], ))
-	if not A_mysql_cur.rowcount == 1:return None;
-	display_sql = A_mysql_cur.fetchone()
+	try:
+		A_mysql_cur = A_mysql.cursor()
+		A_mysql_cur.execute("SELECT * FROM m_push WHERE device = %s", (p["d"], ))
+		if not A_mysql_cur.rowcount == 1:return None;
+		display_sql = A_mysql_cur.fetchone()
 
-	#CALCULATE NEXT TIME AND TOTAL TIME
-	total_round_duration = 0
-	content = str(display_sql[2]).split("|");#split content into frames
-	time_blocks = list();itemlist = list();
-	t_dpgroup = int(display_sql[1]);#Active Group
+		#CALCULATE NEXT TIME AND TOTAL TIME
+		total_round_duration = 0
+		content = str(display_sql[2]).split("|");#split content into frames
+		time_blocks = list();itemlist = list();
+		t_dpgroup = int(display_sql[1]);#Active Group
 
-	for frame in content:
-		bframe = frame.split(";");
-		time_blocks.append(bframe[1]);
-		itemlist.append(bframe[0]);
-		total_round_duration = total_round_duration + int(bframe[1]);
+		for frame in content:
+			if not ";" in frame:#if not time given replace with 10 seconds
+				frame = frame + ";10"
+			bframe = frame.split(";");
+			time_blocks.append(bframe[1]);#add to time
+			itemlist.append(bframe[0]);#add to idlist
+			total_round_duration = total_round_duration + int(bframe[1]);
 
-	time_gap = time_blocks[t_dpgroup];
+		time_gap = time_blocks[t_dpgroup];
 
-	#CALCULATE TIMEDIFFERENCE
-	then = datetime.datetime.strptime(display_sql[3], A_stime)
-	now = datetime.datetime.now()
-	time_passed = now - then;time_passed = time_passed.seconds;
+		#CALCULATE TIMEDIFFERENCE
+		then = datetime.datetime.strptime(display_sql[3], A_stime)
+		now = datetime.datetime.now()
+		time_passed = now - then;time_passed = time_passed.seconds;
+
+	except Exception, e:
+		logging.error('handle_DisplayUpdate();TimeCalculate Error occured:', exc_info=True)
 
 	#HANDLE IF NEXT ITEM OR STAY WITH ITEM
-	if time_passed >= int(time_gap): #NEXT ITEM
-		
-		calculated_item = handle_timing(time_passed,t_dpgroup,total_round_duration,time_blocks);
+	try:
 
-		#Check if nextitem is 0 or +1
-		if len(itemlist) <= calculated_item+1:
-			calculated_item = 0;
-		else:
+		if time_passed >= int(time_gap): #NEXT ITEM
+			
+			calculated_item = handle_timing(time_passed,t_dpgroup,total_round_duration,time_blocks);
+
+			#Check if nextitem is 0 or +1
 			calculated_item = calculated_item+1
+			if calculated_item >= len(itemlist):#check if max value reached
+				calculated_item = 0;
 
-		#GET ITEM
-		A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (itemlist[calculated_item], )) #GET ITEM
-		if not A_mysql_cur.rowcount == 1:return None;
-		display_sql = A_mysql_cur.fetchone()
+			#GET ITEM
+			A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (itemlist[calculated_item], )) #GET ITEM
+			if not A_mysql_cur.rowcount == 1:return None;
+			display_sql = A_mysql_cur.fetchone()
 
-		#UPDATE TIMEING + CURRENT STATUS
-		A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s WHERE device = %s", (calculated_item,now.strftime(A_stime),str(p["d"]), )) #GET ITEM
-		A_mysql.commit()
+			#UPDATE TIMEING + CURRENT STATUS
+			A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s WHERE device = %s", (calculated_item,now.strftime(A_stime),str(p["d"]), )) #GET ITEM
+			A_mysql.commit()
 
-		return demultiplex_item(display_sql[3],display_sql[2])
-	else:
-		#STAY
-		calculated_item = handle_timing(time_passed,t_dpgroup,total_round_duration,time_blocks);
-		A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (itemlist[calculated_item], )) #GET ITEM
-		if not A_mysql_cur.rowcount == 1:return None;
-		display_sql = A_mysql_cur.fetchone()
+			return demultiplex_item(display_sql[3],display_sql[2])
+		else:
+			#STAY
+			calculated_item = handle_timing(time_passed,t_dpgroup,total_round_duration,time_blocks);
+			A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (itemlist[calculated_item], )) #GET ITEM
+			if not A_mysql_cur.rowcount == 1:return None;
+			display_sql = A_mysql_cur.fetchone()
 
-		return demultiplex_item(display_sql[3],display_sql[2])
+			return demultiplex_item(display_sql[3],display_sql[2])
+	except Exception, e:
+		logging.error('handle_DisplayUpdate();TimeSelect Error occured:', exc_info=True)
 
 def handle_command(headers,soc):
 	p = decode_parameters(headers["Path"]);
@@ -150,24 +159,28 @@ def readdata(file):
 	return image_file.read()      
 
 def decode_header(raw):
-	raw_headers = raw.split("\r\n");headers = dict();
-	if raw_headers[0][:3] == "OPT":
-		return None;
-	if raw_headers[0][:3] == "GET":
-		headers["Request"] = "GET"
-		headers["Path"] = raw_headers[0].split(" ")[1]
-		headers["Version"] = raw_headers[0].split(" ")[2]
+	try:
+		raw_headers = raw.split("\r\n");headers = dict();
+		if raw_headers[0][:3] == "OPT":
+			return None;
+		if raw_headers[0][:3] == "GET":
+			headers["Request"] = "GET"
+			headers["Path"] = raw_headers[0].split(" ")[1]
+			headers["Version"] = raw_headers[0].split(" ")[2]
 
-	for head in raw_headers:
-		if ":" in head:
-			tmp = head.split(":")
-			headers[tmp[0]] = tmp[1]
-		elif len(head) > 1:
-			headers["Content"] = head
-	return headers
+		for head in raw_headers:
+			if ":" in head:
+				tmp = head.split(":")
+				headers[tmp[0]] = tmp[1]
+			elif len(head) > 1:
+				headers["Content"] = head
+		return headers
 
+	except Exception, e:
+		logging.error('decode_header();Error occured when decoding header:', exc_info=True)
 def handler(clientsocket, clientaddr):
 	print "Connection Established " , clientaddr
+	logging.info('System Initialized')
 	while 1:
 		rec_data = clientsocket.recv(C_buffer)
 		if not rec_data:
@@ -194,8 +207,9 @@ def handler(clientsocket, clientaddr):
 					senddata(readdata("error.jpg"),"Content-type: image/png",clientsocket)
 				else:
 					senderror(clientsocket)
-		except:
+		except Exception as e:
 			senderror(clientsocket)
+			logging.error('handler(); Mainroutine error:', exc_info=True)
 			raise
 
 if __name__ == "__main__":
@@ -203,6 +217,7 @@ if __name__ == "__main__":
 	serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	serversocket.bind(addr)
 	serversocket.listen(2)
+	logging.info('System Initialized')
 	print "***|SERVER started on %s:%s with buffer size %s bytes|***" % (C_host,C_port,C_buffer) 
 	while 1:
 		clientsocket, clientaddr = serversocket.accept()

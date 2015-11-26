@@ -19,7 +19,7 @@ Config_Mysql_username = "root"
 Config_Mysql_database = "sys"
 
 Config_Server_port = int(5541)
-Config_Server_address = "172.18.21.171"
+Config_Server_address = "localhost"
 Config_Server_buffer = 1024*3
 
 Config_Server_Storage = "C:\\xampp\\htdocs\\php\\storage\\"

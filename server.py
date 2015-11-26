@@ -10,17 +10,18 @@ import math
 import __future__
 import Data_gov
 import pages
+import configuration
 #SETTINGS
 global C_buffer
-C_buffer = 1024*2
+C_buffer = configuration.Config_Server_buffer
 global C_host
-C_host = "localhost"
+C_host = configuration.Config_Server_address
 global C_port
-C_port = 5541
+C_port = configuration.Config_Server_port
 global A_mysql
-A_mysql = MySQLdb.Connection('localhost', 'root', 'test123','sys')
+A_mysql = MySQLdb.Connection(configuration.Config_Mysql_host, configuration.Config_Mysql_username, configuration.Config_Mysql_password,configuration.Config_Mysql_database)
 global A_stime
-A_stime = '%Y-%m-%d %H:%M:%S'
+A_stime = configuration.Config_Server_TimeFormat
 global A_addr
 A_addr = "http://" + str(C_host) + ":" + str(C_port) + "/"
 
@@ -133,10 +134,9 @@ def handle_DisplayUpdate(p):
 def handle_command(headers,soc):
 	p = decode_parameters(headers["Path"]);
 	if ("d" in p) and ("c" in p):
-		if p["c"] == "GET": #Display Get
+		if p["c"] == "GET": #GET Display
 			return handle_DisplayUpdate(p)
-		else:
-			#Command not known
+		else: #UNKNOWN Command
 			return None
 
 def senddata(data,type,cl):
@@ -184,7 +184,7 @@ def handler(clientsocket, clientaddr):
 				else:
 					senddata(encoded_string,"Content-type: text/html",clientsocket)
 			elif headers["Path"][:5] == "/img/":
-				path = headers["Path"];path = path.replace("/img/","C:\\xampp\\htdocs\\php\\storage\\");
+				path = headers["Path"];path = path.replace("/img/",configuration.Config_Server_Storage);
 				if os.path.isfile(path + ".file"):
 					senddata(readdata(path + ".file"),"Content-type: image/png",clientsocket)
 				else:

@@ -10,7 +10,7 @@ global Config_Server_buffer
 
 global Config_Server_Storage
 global Config_Server_TimeFormat
-
+global Config_Server_DebugOverlay
 #INIT CONFIG
 
 Config_Mysql_host ="localhost"
@@ -24,3 +24,4 @@ Config_Server_buffer = 1024*3
 
 Config_Server_Storage = "C:\\xampp\\htdocs\\php\\storage\\"
 Config_Server_TimeFormat = "%Y-%m-%d %H:%M:%S"
+Config_Server_DebugOverlay = False

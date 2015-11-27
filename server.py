@@ -46,7 +46,7 @@ def decode_parameters(url):
 
 def demultiplex_item(content,type):
 	overl = 0 #Activate PSI overlay
-	return pages.GetPage(A_addr,type,content,overl)
+	return pages.GetPage(A_addr,type,content,overl,configuration.Config_Server_DebugOverlay)
 
 def handle_gettime(listt,target,total):
 	p=0;total = total + 0.0;
@@ -97,6 +97,7 @@ def handle_DisplayUpdate(p):
 			itemlist.append(bframe[0]);#add to idlist
 			total_round_duration = total_round_duration + int(bframe[1]);
 
+		print t_dpgroup
 		time_gap = time_blocks[t_dpgroup];
 
 		#CALCULATE TIMEDIFFERENCE
@@ -149,16 +150,11 @@ def handle_command(headers,soc):
 			return None
 
 def senddata(data,type,cl):
-	try:
-		cl.send('HTTP/1.1 200 OK' + '\n' + 'Access-Control-Allow-Origin: *\nAccess-Control-Allow-Headers:x-device\nCache-Control: no-cache, no-store, must-revalidate' + '\n' + 'Pragma: no-cache' + '\n' + 'Expires: 0' + '\n' + 'Content-length: ' + str(len(data)) + '\n'+ type+ '\n' + '\n' + data)
-	except Exception, e:
-		logging.error('senddata();Error while sending data:', exc_info=True)
+	cl.send('HTTP/1.1 200 OK' + '\n' + 'Access-Control-Allow-Origin: *\nAccess-Control-Allow-Headers:x-device\nCache-Control: no-cache, no-store, must-revalidate' + '\n' + 'Pragma: no-cache' + '\n' + 'Expires: 0' + '\n' + 'Content-length: ' + str(len(data)) + '\n'+ type+ '\n' + '\n' + data)
 
 def senderror(cl):
-	try:
-		senddata(demultiplex_item("",0),"Content-type: text/html",cl);
-	except Exception, e:
-		logging.error('senddata();Error while sending data:', exc_info=True)
+	senddata(demultiplex_item("",0),"Content-type: text/html",cl);
+	
 def readdata(file):
 	try:
 		with open(file, "rb") as image_file:

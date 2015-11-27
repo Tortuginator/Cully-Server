@@ -149,15 +149,22 @@ def handle_command(headers,soc):
 			return None
 
 def senddata(data,type,cl):
-    cl.send('HTTP/1.1 200 OK' + '\n' + 'Access-Control-Allow-Origin: *\nAccess-Control-Allow-Headers:x-device\nCache-Control: no-cache, no-store, must-revalidate' + '\n' + 'Pragma: no-cache' + '\n' + 'Expires: 0' + '\n' + 'Content-length: ' + str(len(data)) + '\n'+ type+ '\n' + '\n' + data)
+	try:
+		cl.send('HTTP/1.1 200 OK' + '\n' + 'Access-Control-Allow-Origin: *\nAccess-Control-Allow-Headers:x-device\nCache-Control: no-cache, no-store, must-revalidate' + '\n' + 'Pragma: no-cache' + '\n' + 'Expires: 0' + '\n' + 'Content-length: ' + str(len(data)) + '\n'+ type+ '\n' + '\n' + data)
+	except Exception, e:
+		logging.error('senddata();Error while sending data:', exc_info=True)
 
 def senderror(cl):
-	senddata(demultiplex_item("",0),"Content-type: text/html",cl);
-
+	try:
+		senddata(demultiplex_item("",0),"Content-type: text/html",cl);
+	except Exception, e:
+		logging.error('senddata();Error while sending data:', exc_info=True)
 def readdata(file):
-    with open(file, "rb") as image_file:
-	return image_file.read()      
-
+	try:
+		with open(file, "rb") as image_file:
+			return image_file.read()      
+	except Exception, e:
+		logging.error('readdata();Error while reading file:', exc_info=True)
 def decode_header(raw):
 	try:
 		raw_headers = raw.split("\r\n");headers = dict();

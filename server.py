@@ -194,7 +194,7 @@ def handler(clientsocket, clientaddr):
 				break
 			if headers["Path"][:2] == "/?":
 				encoded_string = handle_command(headers,clientsocket)
-				if encoded_string == None:
+				if encoded_string == None or encoded_string == "null":
 					senderror(clientsocket)
 				else:
 					#senddata(encoded_string,"Content-type: text/html",clientsocket)

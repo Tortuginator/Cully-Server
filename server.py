@@ -129,7 +129,6 @@ def handle_DisplayUpdate(p):
 			A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s WHERE device = %s", (calculated_item,now.strftime(A_stime),str(p["d"]), )) #GET ITEM
 			A_mysql.commit()
 
-			return demultiplex_item(display_sql[3],display_sql[2])
 		else:
 			#STAY
 			calculated_item = handle_timing(time_passed,t_dpgroup,total_round_duration,time_blocks);
@@ -137,7 +136,7 @@ def handle_DisplayUpdate(p):
 			if not A_mysql_cur.rowcount == 1:return None;
 			display_sql = A_mysql_cur.fetchone()
 
-			return demultiplex_item(display_sql[3],display_sql[2])
+		return {"content":demultiplex_item(display_sql[3],display_sql[2]),"id":display_sql[0],"type":display_sql[2],"name":display_sql[1]}
 	except Exception, e:
 		logging.error('handle_DisplayUpdate();TimeSelect Error occured:', exc_info=True)
 
@@ -145,7 +144,7 @@ def handle_command(headers,soc):
 	p = decode_parameters(headers["Path"]);
 	if ("d" in p) and ("c" in p):
 		if p["c"] == "GET": #GET Display
-			return handle_DisplayUpdate(p)
+			return json.dumps(handle_DisplayUpdate(p))
 		else: #UNKNOWN Command
 			return None
 
@@ -198,7 +197,8 @@ def handler(clientsocket, clientaddr):
 				if encoded_string == None:
 					senderror(clientsocket)
 				else:
-					senddata(encoded_string,"Content-type: text/html",clientsocket)
+					#senddata(encoded_string,"Content-type: text/html",clientsocket)
+					senddata(encoded_string,"Content-type: application/json",clientsocket)
 			elif headers["Path"][:5] == "/img/":
 				path = headers["Path"];path = path.replace("/img/",configuration.Config_Server_Storage);
 				if os.path.isfile(path + ".file"):

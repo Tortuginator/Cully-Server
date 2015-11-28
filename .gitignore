@@ -47,3 +47,5 @@ storage/1.jpg
 *.bat
 *.pyc
 *.log
+*.pyc
+compile.py

@@ -11,6 +11,8 @@ import __future__
 import Data_gov
 import pages
 import configuration
+from os import listdir
+from os.path import isfile, join
 import logging
 #SETTINGS
 global C_buffer
@@ -44,9 +46,9 @@ def decode_parameters(url):
 			b = a.split("=");p[b[0]] = b[1];
 	return p
 
-def demultiplex_item(content,type):
+def demultiplex_item(Type,Content,sub_id):
 	overl = 0 #Activate PSI overlay
-	return pages.GetPage(A_addr,type,content,overl,configuration.Config_Server_DebugOverlay)
+	return pages.GetPage(A_addr,Type,Content,overl,configuration.Config_Server_DebugOverlay,sub_id)
 
 def handle_gettime(listt,target,total):
 	p=0;total = total + 0.0;
@@ -82,7 +84,7 @@ def handle_DisplayUpdate(p):
 		A_mysql_cur.execute("SELECT * FROM m_push WHERE device = %s", (p["d"], ))
 		if not A_mysql_cur.rowcount == 1:return None;
 		display_sql = A_mysql_cur.fetchone()
-
+		sub_id = int(display_sql[5]); #get possible sub
 		#CALCULATE NEXT TIME AND TOTAL TIME
 		total_round_duration = 0
 		content = str(display_sql[2]).split("|");#split content into frames
@@ -97,7 +99,6 @@ def handle_DisplayUpdate(p):
 			itemlist.append(bframe[0]);#add to idlist
 			total_round_duration = total_round_duration + int(bframe[1]);
 
-		print t_dpgroup
 		time_gap = time_blocks[t_dpgroup];
 
 		#CALCULATE TIMEDIFFERENCE
@@ -112,7 +113,7 @@ def handle_DisplayUpdate(p):
 	try:
 
 		if time_passed >= int(time_gap): #NEXT ITEM
-			
+			album_content = None;
 			calculated_item = handle_timing(time_passed,t_dpgroup,total_round_duration,time_blocks);
 
 			#Check if nextitem is 0 or +1
@@ -125,9 +126,34 @@ def handle_DisplayUpdate(p):
 			if not A_mysql_cur.rowcount == 1:return None;
 			display_sql = A_mysql_cur.fetchone()
 
-			#UPDATE TIMEING + CURRENT STATUS
-			A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s WHERE device = %s", (calculated_item,now.strftime(A_stime),str(p["d"]), )) #GET ITEM
-			A_mysql.commit()
+			#SLIDESHOW
+			if int(display_sql[2]) == 6:
+				sub_id = int(sub_id);
+				opret = False;
+				path = configuration.Config_Server_Storage + display_sql[3];
+				if not os.path.isdir(path):
+					sub_id = 0;
+					opret = True;
+				else:
+					files = [f for f in listdir(path) if isfile(join(path, f))];
+					if len(files) == 0: opret = True;
+					if (len(files)-1) <= sub_id:
+						sub_id = 0;
+					else:
+						sub_id = int(sub_id) + 1;
+
+					try:
+						album_content = path + "\\" + files[sub_id]
+					except IndexError:
+						opret = True;sub_id = 0;album_content = "";
+
+				#UPDATE TIMEING + CURRENT STATUS
+				A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s, m_push.current_sub = %s WHERE device = %s", (calculated_item,now.strftime(A_stime),int(sub_id),str(p["d"]), )) #GET ITEM
+				A_mysql.commit()
+				if opret == True: return None;
+			else:
+				A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s WHERE device = %s", (calculated_item,now.strftime(A_stime),str(p["d"]), )) #GET ITEM
+				A_mysql.commit()
 
 		else:
 			#STAY
@@ -135,10 +161,33 @@ def handle_DisplayUpdate(p):
 			A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (itemlist[calculated_item], )) #GET ITEM
 			if not A_mysql_cur.rowcount == 1:return None;
 			display_sql = A_mysql_cur.fetchone()
+			#SLIDESHOW
+			if int(display_sql[2]) == 6:
+				sub_id = int(sub_id);
+				opret = False;
+				path = configuration.Config_Server_Storage + display_sql[3];
+				if not os.path.isdir(path):
+					sub_id = 0;
+					opret = True;
+				else:
+					files = [f for f in listdir(path) if isfile(join(path, f))];
+					try:
+						album_content = path + "\\" + files[sub_id]
+					except IndexError:
+						opret = True;sub_id = 0;album_content = "";
+			if opret == True: return None;
 
-		return {"content":demultiplex_item(display_sql[3],display_sql[2]),"id":display_sql[0],"type":display_sql[2],"name":display_sql[1]}
+		#CHECK SLIDESHOW CONTENT
+		if not album_content == None:
+			content_inner = album_content;
+		else:
+			content_inner = display_sql[3];
+
+		#RETURN
+		return {"content":demultiplex_item(display_sql[2],content_inner,sub_id),"id":display_sql[0],"type":display_sql[2],"name":display_sql[1]}
 	except Exception, e:
 		logging.error('handle_DisplayUpdate();TimeSelect Error occured:', exc_info=True)
+		raise;
 
 def handle_command(headers,soc):
 	p = decode_parameters(headers["Path"]);
@@ -152,7 +201,7 @@ def senddata(data,type,cl):
 	cl.send('HTTP/1.1 200 OK' + '\n' + 'Access-Control-Allow-Origin: *\nAccess-Control-Allow-Headers:x-device\nCache-Control: no-cache, no-store, must-revalidate' + '\n' + 'Pragma: no-cache' + '\n' + 'Expires: 0' + '\n' + 'Content-length: ' + str(len(data)) + '\n'+ type+ '\n' + '\n' + data)
 
 def senderror(cl):
-	senddata(demultiplex_item("",0),"Content-type: text/html",cl);
+	senddata(demultiplex_item(0,"",0),"Content-type: text/html",cl);
 	
 def readdata(file):
 	try:
@@ -200,11 +249,16 @@ def handler(clientsocket, clientaddr):
 					#senddata(encoded_string,"Content-type: text/html",clientsocket)
 					senddata(encoded_string,"Content-type: application/json",clientsocket)
 			elif headers["Path"][:5] == "/img/":
-				path = headers["Path"];path = path.replace("/img/",configuration.Config_Server_Storage);
+				path = headers["Path"];
+				path = path.replace("%5C","\\");
+				path = path.replace("/img/",configuration.Config_Server_Storage);
 				if os.path.isfile(path + ".file"):
 					senddata(readdata(path + ".file"),"Content-type: image/png",clientsocket)
 				else:
-					senderror(clientsocket)
+					if os.path.isfile(path):
+						senddata(readdata(path),"Content-type: image/png",clientsocket)
+					else:
+						senderror(clientsocket)
 			else:
 				if "error" in headers["Path"]:
 					senddata(readdata("error.jpg"),"Content-type: image/png",clientsocket)

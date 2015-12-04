@@ -21,7 +21,7 @@ global C_host
 C_host = configuration.Config_Server_address
 global C_port
 C_port = configuration.Config_Server_port
-global A_mysql
+
 A_mysql = MySQLdb.Connection(configuration.Config_Mysql_host, configuration.Config_Mysql_username, configuration.Config_Mysql_password,configuration.Config_Mysql_database)
 global A_stime
 A_stime = configuration.Config_Server_TimeFormat
@@ -46,9 +46,9 @@ def decode_parameters(url):
 			b = a.split("=");p[b[0]] = b[1];
 	return p
 
-def demultiplex_item(Type,Content,sub_id):
+def demultiplex_item(Type,Content):
 	overl = 0 #Activate PSI overlay
-	return pages.GetPage(A_addr,Type,Content,overl,configuration.Config_Server_DebugOverlay,sub_id)
+	return pages.GetPage(A_addr,Type,Content,overl,configuration.Config_Server_DebugOverlay)
 
 def handle_gettime(listt,target,total):
 	p=0;total = total + 0.0;
@@ -108,7 +108,7 @@ def handle_DisplayUpdate(p):
 
 	except Exception, e:
 		logging.error('handle_DisplayUpdate();TimeCalculate Error occured:', exc_info=True)
-
+		raise;
 	#HANDLE IF NEXT ITEM OR STAY WITH ITEM
 	try:
 
@@ -184,7 +184,7 @@ def handle_DisplayUpdate(p):
 			content_inner = display_sql[3];
 
 		#RETURN
-		return {"content":demultiplex_item(display_sql[2],content_inner,sub_id),"id":display_sql[0],"type":display_sql[2],"name":display_sql[1]}
+		return {"content":demultiplex_item(display_sql[2],content_inner),"id":display_sql[0],"type":display_sql[2],"name":display_sql[1]}
 	except Exception, e:
 		logging.error('handle_DisplayUpdate();TimeSelect Error occured:', exc_info=True)
 		raise;
@@ -201,7 +201,7 @@ def senddata(data,type,cl):
 	cl.send('HTTP/1.1 200 OK' + '\n' + 'Access-Control-Allow-Origin: *\nAccess-Control-Allow-Headers:x-device\nCache-Control: no-cache, no-store, must-revalidate' + '\n' + 'Pragma: no-cache' + '\n' + 'Expires: 0' + '\n' + 'Content-length: ' + str(len(data)) + '\n'+ type+ '\n' + '\n' + data)
 
 def senderror(cl):
-	senddata(demultiplex_item(0,"",0),"Content-type: text/html",cl);
+	senddata(demultiplex_item(0,""),"Content-type: text/html",cl);
 	
 def readdata(file):
 	try:
@@ -232,6 +232,7 @@ def decode_header(raw):
 def handler(clientsocket, clientaddr):
 	print "Connection Established " , clientaddr
 	logging.info('System Initialized')
+	A_mysql = MySQLdb.Connection(configuration.Config_Mysql_host, configuration.Config_Mysql_username, configuration.Config_Mysql_password,configuration.Config_Mysql_database)
 	while 1:
 		rec_data = clientsocket.recv(C_buffer)
 		if not rec_data:

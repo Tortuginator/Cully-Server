@@ -49,3 +49,4 @@ storage/1.jpg
 *.log
 *.pyc
 compile.py
+*.pyc

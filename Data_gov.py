@@ -4,18 +4,24 @@ import math
 import sys
 import json
 
-if 1 in sys.argv:
-	API_KEY = sys.argv[1];
-
+if len(sys.argv) >=1:
+	try:
+		API_KEY = sys.argv[1];
+	except Exception,e:
+		API_KEY = 0;
+else:
+	API_KEY = None;
 #SINGAPORE PSI LEVELS
 def GetDataAirQ():
-    file = urllib2.urlopen('http://www.nea.gov.sg/api/WebAPI?dataset=psi_update&keyref=' + API_KEY)
-    data = file.read()
-    file.close()
-    data = xmltodict.parse(data)
-    return data;
+	if API_KEY == None: return None;
+	file = urllib2.urlopen('http://www.nea.gov.sg/api/WebAPI?dataset=psi_update&keyref=' + API_KEY)
+	data = file.read()
+	file.close()
+	data = xmltodict.parse(data)
+	return data;
 
 def GetPSI(data):
+	if data == None:return None;
 	data = GetDataAirQ();
 	return data["channel"]["item"]["region"][1]["record"]["reading"][0]["@value"];
 
@@ -24,7 +30,7 @@ def GetCoordinates(data):
 	return data["geoJson"]["features"][0]["coordinates"];
 
 def GetDataTaxi():
-    #TCP client
+	#TCP client
 	req = urllib2.Request("https://data.gov.sg/realtime-api/transport/taxiAvailability", headers={'User-Agent' : "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:42.0) Gecko/20100101 Firefox/42.0"}) 
 	con = urllib2.urlopen(req)
 	return json.loads(con.read());
@@ -44,4 +50,4 @@ def isInRadius(data,radi):
 def AvailableTaxisInRadius(radi):
 	data = GetDataTaxi();
 	data = GetCoordinates(data);
-	print isInRadius(data,radi);
+	return isInRadius(data,radi);

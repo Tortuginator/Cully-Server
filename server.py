@@ -22,7 +22,7 @@ C_host = configuration.Config_Server_address
 global C_port
 C_port = configuration.Config_Server_port
 
-A_mysql = MySQLdb.Connection(configuration.Config_Mysql_host, configuration.Config_Mysql_username, configuration.Config_Mysql_password,configuration.Config_Mysql_database)
+#A_mysql = MySQLdb.Connection(configuration.Config_Mysql_host, configuration.Config_Mysql_username, configuration.Config_Mysql_password,configuration.Config_Mysql_database)
 global A_stime
 A_stime = configuration.Config_Server_TimeFormat
 global A_addr
@@ -78,24 +78,25 @@ def handle_timing(seconds,currid,total_round,time_blocks):
 
 def handle_DisplayUpdate(p):
 	#ALGORITHM COPYRIGHT FELIX FRIEDBERGER 2015/2016 DO NOT DISTRIBUTE FREELY
+	A_mysql = MySQLdb.Connection(configuration.Config_Mysql_host, configuration.Config_Mysql_username, configuration.Config_Mysql_password,configuration.Config_Mysql_database)
 	#CHECK if device exists
 	try:
 		A_mysql_cur = A_mysql.cursor()
 		A_mysql_cur.execute("SELECT * FROM m_push WHERE device = %s", (p["d"], ))
 		if not A_mysql_cur.rowcount == 1:return None;
 		display_sql = A_mysql_cur.fetchone()
+		if display_sql[2] == "" or "|" not in display_sql[2] or ";" not in display_sql[2]:return None;#check if data valid and present
 		sub_id = int(display_sql[5]); #get possible sub
 		#CALCULATE NEXT TIME AND TOTAL TIME
-		total_round_duration = 0
+		total_round_duration = 0;
 		content = str(display_sql[2]).split("|");#split content into frames
 		time_blocks = list();itemlist = list();
 		t_dpgroup = int(display_sql[1]);#Active Group
 
 		for frame in content:
-			if not ";" in frame:#if not time given replace with 10 seconds
-				frame = frame + ";10"
+			if not ";" in frame:frame = frame + ";10";#if not time given replace with 10 seconds
 			bframe = frame.split(";");
-			time_blocks.append(bframe[1]);#add to time
+			time_blocks.append(bframe[1])#add to time
 			itemlist.append(bframe[0]);#add to idlist
 			total_round_duration = total_round_duration + int(bframe[1]);
 
@@ -108,7 +109,7 @@ def handle_DisplayUpdate(p):
 
 	except Exception, e:
 		logging.error('handle_DisplayUpdate();TimeCalculate Error occured:', exc_info=True)
-		raise;
+
 	#HANDLE IF NEXT ITEM OR STAY WITH ITEM
 	try:
 
@@ -123,7 +124,7 @@ def handle_DisplayUpdate(p):
 
 			#GET ITEM
 			A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (itemlist[calculated_item], )) #GET ITEM
-			if not A_mysql_cur.rowcount == 1:return None;
+			if not A_mysql_cur.rowcount == 1:return None;#ID does not exist
 			display_sql = A_mysql_cur.fetchone()
 
 			#SLIDESHOW
@@ -159,8 +160,9 @@ def handle_DisplayUpdate(p):
 			#STAY
 			calculated_item = handle_timing(time_passed,t_dpgroup,total_round_duration,time_blocks);
 			A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (itemlist[calculated_item], )) #GET ITEM
-			if not A_mysql_cur.rowcount == 1:return None;
+			if not A_mysql_cur.rowcount == 1:return None;#ID does not exist
 			display_sql = A_mysql_cur.fetchone()
+
 			#SLIDESHOW
 			if int(display_sql[2]) == 6:
 				sub_id = int(sub_id);
@@ -184,10 +186,13 @@ def handle_DisplayUpdate(p):
 			content_inner = display_sql[3];
 
 		#RETURN
-		return {"content":demultiplex_item(display_sql[2],content_inner),"id":display_sql[0],"type":display_sql[2],"name":display_sql[1]}
+		try:
+			return {"content":demultiplex_item(display_sql[2],content_inner),"id":display_sql[0],"type":display_sql[2],"name":display_sql[1]}
+		except Exception,e:
+			return None;
+			logging.error('handle_DisplayUpdate();Error occured while Rendering / Finally returning values:', exc_info=True)
 	except Exception, e:
 		logging.error('handle_DisplayUpdate();TimeSelect Error occured:', exc_info=True)
-		raise;
 
 def handle_command(headers,soc):
 	p = decode_parameters(headers["Path"]);
@@ -229,10 +234,10 @@ def decode_header(raw):
 
 	except Exception, e:
 		logging.error('decode_header();Error occured when decoding header:', exc_info=True)
+
 def handler(clientsocket, clientaddr):
 	print "Connection Established " , clientaddr
 	logging.info('System Initialized')
-	A_mysql = MySQLdb.Connection(configuration.Config_Mysql_host, configuration.Config_Mysql_username, configuration.Config_Mysql_password,configuration.Config_Mysql_database)
 	while 1:
 		rec_data = clientsocket.recv(C_buffer)
 		if not rec_data:
@@ -240,15 +245,14 @@ def handler(clientsocket, clientaddr):
 		try:
 			headers = decode_header(rec_data)
 			if None == headers:
-				senddata(clientsocket)
+				senderror(clientsocket);
 				break
 			if headers["Path"][:2] == "/?":
 				encoded_string = handle_command(headers,clientsocket)
 				if encoded_string == None or encoded_string == "null":
-					senderror(clientsocket)
+					senderror(clientsocket);
 				else:
-					#senddata(encoded_string,"Content-type: text/html",clientsocket)
-					senddata(encoded_string,"Content-type: application/json",clientsocket)
+					senddata(encoded_string,"Content-type: application/json",clientsocket);
 			elif headers["Path"][:5] == "/img/":
 				path = headers["Path"];
 				path = path.replace("%5C","\\");
@@ -269,6 +273,7 @@ def handler(clientsocket, clientaddr):
 			senderror(clientsocket)
 			logging.error('handler(); Mainroutine error:', exc_info=True)
 			raise
+	print "Connection Closed ", clientaddr
 
 if __name__ == "__main__":
 	addr = (C_host, C_port)

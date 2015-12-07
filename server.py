@@ -61,18 +61,18 @@ def handle_gettime(listt,target,total):
 				return int(i)-1
 
 def handle_calcitem(listt,id):
-	p = 0
+	p = 0;
 	for v,i in enumerate(listt):
-		p = p + int(i)
+		p = p + int(i);
 		if v == int(id):
 			return p;
 
-def handle_timing(seconds,currid,total_round,time_blocks):
-	time_c_item = handle_calcitem(time_blocks,currid)
+def handle_timing(seconds,currid,total_round,block_time):
+	time_c_item = handle_calcitem(block_time,currid)
 	if time_c_item < seconds:
 		a = seconds + time_c_item;
 		b = a%time_c_item;
-		return handle_gettime(time_blocks,b,total_round)
+		return handle_gettime(block_time,b,total_round);
 	else:
 		return int(currid);
 
@@ -86,70 +86,72 @@ def handle_DisplayUpdate(p):
 		if not A_mysql_cur.rowcount == 1:return None;
 		display_sql = A_mysql_cur.fetchone()
 		if display_sql[2] == "" or "|" not in display_sql[2] or ";" not in display_sql[2]:return None;#check if data valid and present
-		sub_id = int(display_sql[5]); #get possible sub
+		if len(str(display_sql[2]).split("|")) <= 1:return None;#check if min. 2 items exist
+		album_current_id = int(display_sql[5]); #get possible sub
+
 		#CALCULATE NEXT TIME AND TOTAL TIME
-		total_round_duration = 0;
+		cycle_duration = 0;block_time = list();block_item = list();
 		content = str(display_sql[2]).split("|");#split content into frames
-		time_blocks = list();itemlist = list();
-		t_dpgroup = int(display_sql[1]);#Active Group
+		cycle_current = int(display_sql[1]);#Active Group
 
 		for frame in content:
 			if not ";" in frame:frame = frame + ";10";#if not time given replace with 10 seconds
-			bframe = frame.split(";");
-			time_blocks.append(bframe[1])#add to time
-			itemlist.append(bframe[0]);#add to idlist
-			total_round_duration = total_round_duration + int(bframe[1]);
+			frame_extract = frame.split(";");
+			block_time.append(frame_extract[1])#add to time
+			block_item.append(frame_extract[0]);#add to idlist
+			cycle_duration = cycle_duration + int(frame_extract[1]);
 
-		time_gap = time_blocks[t_dpgroup];
+		cycle_current_item_time = block_time[cycle_current];
 
 		#CALCULATE TIMEDIFFERENCE
-		then = datetime.datetime.strptime(display_sql[3], A_stime)
 		now = datetime.datetime.now()
-		time_passed = now - then;time_passed = time_passed.seconds;
+		then = datetime.datetime.strptime(display_sql[3], A_stime);
+		cycle_time_overall = now - then
+		cycle_time_overall = cycle_time_overall.seconds;
 
 	except Exception, e:
 		logging.error('handle_DisplayUpdate();TimeCalculate Error occured:', exc_info=True)
 
-	#HANDLE IF NEXT ITEM OR STAY WITH ITEM
+	#HANDLE IF NEXT ITEM OR STAY WITH CURRENT ITEM
 	try:
 
-		if time_passed >= int(time_gap): #NEXT ITEM
+		if cycle_time_overall >= int(cycle_current_item_time): #NEXT ITEM
 			album_content = None;
-			calculated_item = handle_timing(time_passed,t_dpgroup,total_round_duration,time_blocks);
+			calculated_item = handle_timing(cycle_time_overall,cycle_current,cycle_duration,block_time);
 
 			#Check if nextitem is 0 or +1
 			calculated_item = calculated_item+1
-			if calculated_item >= len(itemlist):#check if max value reached
+			if calculated_item >= len(block_item):#check if max value reached
 				calculated_item = 0;
 
 			#GET ITEM
-			A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (itemlist[calculated_item], )) #GET ITEM
+			A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (block_item[calculated_item], )) #GET ITEM
 			if not A_mysql_cur.rowcount == 1:return None;#ID does not exist
 			display_sql = A_mysql_cur.fetchone()
 
 			#SLIDESHOW
 			if int(display_sql[2]) == 6:
-				sub_id = int(sub_id);
+				album_current_id = int(album_current_id);
 				opret = False;
 				path = configuration.Config_Server_Storage + display_sql[3];
 				if not os.path.isdir(path):
-					sub_id = 0;
+					album_current_id = 0;
 					opret = True;
 				else:
 					files = [f for f in listdir(path) if isfile(join(path, f))];
 					if len(files) == 0: opret = True;
-					if (len(files)-1) <= sub_id:
-						sub_id = 0;
+					if (len(files)-1) <= album_current_id:
+						album_current_id = 0;
 					else:
-						sub_id = int(sub_id) + 1;
+						album_current_id = int(album_current_id) + 1;
 
 					try:
-						album_content = path + "\\" + files[sub_id]
+						album_content = path + "\\" + files[album_current_id]
 					except IndexError:
-						opret = True;sub_id = 0;album_content = "";
+						opret = True;album_current_id = 0;album_content = "";
 
 				#UPDATE TIMEING + CURRENT STATUS
-				A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s, m_push.current_sub = %s WHERE device = %s", (calculated_item,now.strftime(A_stime),int(sub_id),str(p["d"]), )) #GET ITEM
+				A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s, m_push.current_sub = %s WHERE device = %s", (calculated_item,now.strftime(A_stime),int(album_current_id),str(p["d"]), )) #GET ITEM
 				A_mysql.commit()
 				if opret == True: return None;
 			else:
@@ -158,25 +160,25 @@ def handle_DisplayUpdate(p):
 
 		else:
 			#STAY
-			calculated_item = handle_timing(time_passed,t_dpgroup,total_round_duration,time_blocks);
-			A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (itemlist[calculated_item], )) #GET ITEM
+			calculated_item = handle_timing(cycle_time_overall,cycle_current,cycle_duration,block_time);
+			A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (block_item[calculated_item], )) #GET ITEM
 			if not A_mysql_cur.rowcount == 1:return None;#ID does not exist
 			display_sql = A_mysql_cur.fetchone()
 
 			#SLIDESHOW
 			if int(display_sql[2]) == 6:
-				sub_id = int(sub_id);
+				album_current_id = int(album_current_id);
 				opret = False;
 				path = configuration.Config_Server_Storage + display_sql[3];
 				if not os.path.isdir(path):
-					sub_id = 0;
+					album_current_id = 0;
 					opret = True;
 				else:
 					files = [f for f in listdir(path) if isfile(join(path, f))];
 					try:
-						album_content = path + "\\" + files[sub_id]
+						album_content = path + "\\" + files[album_current_id]
 					except IndexError:
-						opret = True;sub_id = 0;album_content = "";
+						opret = True;album_current_id = 0;album_content = "";
 			if opret == True: return None;
 
 		#CHECK SLIDESHOW CONTENT
@@ -203,7 +205,7 @@ def handle_command(headers,soc):
 			return None
 
 def senddata(data,type,cl):
-	cl.send('HTTP/1.1 200 OK' + '\n' + 'Access-Control-Allow-Origin: *\nAccess-Control-Allow-Headers:x-device\nCache-Control: no-cache, no-store, must-revalidate' + '\n' + 'Pragma: no-cache' + '\n' + 'Expires: 0' + '\n' + 'Content-length: ' + str(len(data)) + '\n'+ type+ '\n' + '\n' + data)
+	cl.send('HTTP/1.1 200 OK' + '\n' + 'Access-Control-Allow-Origin: *\nCache-Control: no-cache, no-store, must-revalidate' + '\n' + 'Pragma: no-cache' + '\n' + 'Expires: 0' + '\n' + 'Content-length: ' + str(len(data)) + '\n'+ type+ '\n' + '\n' + data)
 
 def senderror(cl):
 	senddata(demultiplex_item(0,""),"Content-type: text/html",cl);
@@ -273,7 +275,7 @@ def handler(clientsocket, clientaddr):
 			senderror(clientsocket)
 			logging.error('handler(); Mainroutine error:', exc_info=True)
 			raise
-	print "Connection Closed ", clientaddr
+	print "Connection Closed ", clientaddr, "\n"
 
 if __name__ == "__main__":
 	addr = (C_host, C_port)

@@ -8,7 +8,7 @@ if len(sys.argv) >=1:
 	try:
 		API_KEY = sys.argv[1];
 	except Exception,e:
-		API_KEY = 0;
+		API_KEY = None;
 else:
 	API_KEY = None;
 #SINGAPORE PSI LEVELS

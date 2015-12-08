@@ -1,22 +1,23 @@
+import configuration
 #Functions
 def PrintError(Address,Content):
 	ErrorImage = "error.jpg";
 	ErrorBackground = "#f3f4f4";
-	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;background-color:' + ErrorBackground + ';"><img src="' + Address + ErrorImage + '" style=" position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);"></src>';
+	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;background-color:' + ErrorBackground + ';"><img src="http://' + Address + '/' + ErrorImage + '" style=" position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);"></src>';
 
 def PrintFullframeImage(Address,Content):
-	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;background-image:url(\'' + Address + 'img/' + Content + '\');background-position: right top;background-size: 100%;">'
+	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;background-image:url(\'' + Address + '/img/' + Content + '\');background-position: right top;background-size: 100%;">'
 
 def PrintCostumHTML(Address,Content):
 	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;">\n%s\n' % (Content)
 
 def PrintCenteredImage(Address,Content):
-	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;"><img src="' + Address + 'img/' + Content + '" style =" position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);"></src>';
+	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;"><img src="http://' + Address + '/img/' + Content + '" style =" position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);"></src>';
 
 def PrintSlideshowImage(Address,Content):
 	image = Content.split("\\");
-	image = image[len(image)-2] + "\\" + image[len(image)-1]
-	return '<body style = "font-family:' + font +'!important;background-color:black;margin:0px;padding:0px;"><img src="' + Address + 'img/' + image + '" style =" position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);">' + Content + '</src>';
+	image = image[len(image)-2] + "/" + image[len(image)-1]
+	return '<body style = "font-family:' + font +'!important;background-color:black;margin:0px;padding:0px;"><img src="http://' + Address + '/img/' + image + '" style =" position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);">' + Content + '</src>';
 
 #DO NOT EDIT
 #Backbone functions for server call and input
@@ -32,6 +33,7 @@ def GetBackbone(innerHTML,debug):
 
 def GetPage(Address,Type,Content,overlay,debug):
 	Type = int(Type);ret = None;
+	Address = configuration.Config_Server_address_public + ':' + str(configuration.Config_Server_port_public);
 	if str(Type) in functions:
 		return GetBackbone(functions[str(Type)](Address,Content),debug);
 	else:

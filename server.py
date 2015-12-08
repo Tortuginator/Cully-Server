@@ -164,24 +164,24 @@ def handle_DisplayUpdate(p):
 			A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (block_item[calculated_item], )) #GET ITEM
 			if not A_mysql_cur.rowcount == 1:return None;#ID does not exist
 			display_sql = A_mysql_cur.fetchone()
-
-			#SLIDESHOW
+			album_content = None;
+			#SLIDESHOW Mode if Type == 6 = Slideshow
 			if int(display_sql[2]) == 6:
 				album_current_id = int(album_current_id);
-				opret = False;
+				opret = False;#optional forced retrun True;False
 				path = configuration.Config_Server_Storage + display_sql[3];
-				if not os.path.isdir(path):
+				if not os.path.isdir(path):#if path is folder
 					album_current_id = 0;
-					opret = True;
+					opret = True;#
 				else:
-					files = [f for f in listdir(path) if isfile(join(path, f))];
+					files = [f for f in listdir(path) if isfile(join(path, f))];#all files in folder
 					try:
-						album_content = path + "\\" + files[album_current_id]
+						album_content = path + "\\" + files[album_current_id] #combine path
 					except IndexError:
-						opret = True;album_current_id = 0;album_content = "";
-			if opret == True: return None;
+						opret = True;album_current_id = 0;album_content = ""; #reset variables on error
+				if opret == True: return None;#initiate possible return Null;
 
-		#CHECK SLIDESHOW CONTENT
+				#CHECK SLIDESHOW CONTENT
 		if not album_content == None:
 			content_inner = album_content;
 		else:
@@ -191,8 +191,9 @@ def handle_DisplayUpdate(p):
 		try:
 			return {"content":demultiplex_item(display_sql[2],content_inner),"id":display_sql[0],"type":display_sql[2],"name":display_sql[1]}
 		except Exception,e:
-			return None;
 			logging.error('handle_DisplayUpdate();Error occured while Rendering / Finally returning values:', exc_info=True)
+			return None;
+
 	except Exception, e:
 		logging.error('handle_DisplayUpdate();TimeSelect Error occured:', exc_info=True)
 

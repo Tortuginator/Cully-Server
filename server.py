@@ -76,13 +76,17 @@ def handle_timing(seconds,currid,total_round,block_time):
 	else:
 		return int(currid);
 
-def handle_DisplayUpdate(p):
+def handle_DisplayUpdate(parameter):
 	#ALGORITHM COPYRIGHT FELIX FRIEDBERGER 2015/2016 DO NOT DISTRIBUTE FREELY
-	A_mysql = MySQLdb.Connection(configuration.Config_Mysql_host, configuration.Config_Mysql_username, configuration.Config_Mysql_password,configuration.Config_Mysql_database)
+	try:
+		A_mysql = MySQLdb.Connection(configuration.Config_Mysql_host, configuration.Config_Mysql_username, configuration.Config_Mysql_password,configuration.Config_Mysql_database)
+	except Exception, e:
+		raise;return None;
+
 	#CHECK if device exists
 	try:
 		A_mysql_cur = A_mysql.cursor()
-		A_mysql_cur.execute("SELECT * FROM m_push WHERE device = %s", (p["d"], ))
+		A_mysql_cur.execute("SELECT * FROM m_push WHERE device = %s", (parameter["d"], ))
 		if not A_mysql_cur.rowcount == 1:return None;
 		display_sql = A_mysql_cur.fetchone()
 		if display_sql[2] == "" or "|" not in display_sql[2] or ";" not in display_sql[2]:return None;#check if data valid and present
@@ -96,10 +100,10 @@ def handle_DisplayUpdate(p):
 
 		for frame in content:
 			if not ";" in frame:frame = frame + ";10";#if not time given replace with 10 seconds
-			frame_extract = frame.split(";");
-			block_time.append(frame_extract[1])#add to time
-			block_item.append(frame_extract[0]);#add to idlist
-			cycle_duration = cycle_duration + int(frame_extract[1]);
+			frame = frame.split(";");
+			block_time.append(frame[1])#add to time
+			block_item.append(frame[0]);#add to idlist
+			cycle_duration = cycle_duration + int(frame[1]);
 
 		cycle_current_item_time = block_time[cycle_current];
 
@@ -126,7 +130,10 @@ def handle_DisplayUpdate(p):
 
 			#GET ITEM
 			A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (block_item[calculated_item], )) #GET ITEM
-			if not A_mysql_cur.rowcount == 1:return None;#ID does not exist
+			if not A_mysql_cur.rowcount == 1:
+				A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s WHERE device = %s", (int(calculated_item)+1,now.strftime(A_stime),str(parameter["d"]), )) #Force Update
+				A_mysql.commit()
+				return None;#ID does not exist
 			display_sql = A_mysql_cur.fetchone()
 
 			#SLIDESHOW
@@ -151,18 +158,21 @@ def handle_DisplayUpdate(p):
 						opret = True;album_current_id = 0;album_content = "";
 
 				#UPDATE TIMEING + CURRENT STATUS
-				A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s, m_push.current_sub = %s WHERE device = %s", (calculated_item,now.strftime(A_stime),int(album_current_id),str(p["d"]), )) #GET ITEM
+				A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s, m_push.current_sub = %s WHERE device = %s", (calculated_item,now.strftime(A_stime),int(album_current_id),str(parameter["d"]), )) #GET ITEM
 				A_mysql.commit()
 				if opret == True: return None;
 			else:
-				A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s WHERE device = %s", (calculated_item,now.strftime(A_stime),str(p["d"]), )) #GET ITEM
+				A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s WHERE device = %s", (calculated_item,now.strftime(A_stime),str(parameter["d"]), )) #GET ITEM
 				A_mysql.commit()
 
 		else:
 			#STAY
 			calculated_item = handle_timing(cycle_time_overall,cycle_current,cycle_duration,block_time);
 			A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (block_item[calculated_item], )) #GET ITEM
-			if not A_mysql_cur.rowcount == 1:return None;#ID does not exist
+			if not A_mysql_cur.rowcount == 1:
+				A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s WHERE device = %s", (int(calculated_item)+1,now.strftime(A_stime),str(parameters["d"]), )) #Force Update pn error
+				A_mysql.commit()
+				return None;#ID does not exist
 			display_sql = A_mysql_cur.fetchone()
 			album_content = None;
 			#SLIDESHOW Mode if Type == 6 = Slideshow

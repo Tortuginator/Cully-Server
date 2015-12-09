@@ -139,14 +139,14 @@ def handle_DisplayUpdate(parameter):
 			#SLIDESHOW
 			if int(display_sql[2]) == 6:
 				album_current_id = int(album_current_id);
-				opret = False;
+				operation_return = False;
 				path = configuration.Config_Server_Storage + display_sql[3];
 				if not os.path.isdir(path):
 					album_current_id = 0;
-					opret = True;
+					operation_return = True;
 				else:
 					files = [f for f in listdir(path) if isfile(join(path, f))];
-					if len(files) == 0: opret = True;
+					if len(files) == 0: operation_return = True;
 					if (len(files)-1) <= album_current_id:
 						album_current_id = 0;
 					else:
@@ -155,12 +155,12 @@ def handle_DisplayUpdate(parameter):
 					try:
 						album_content = path + "\\" + files[album_current_id]
 					except IndexError:
-						opret = True;album_current_id = 0;album_content = "";
+						operation_return = True;album_current_id = 0;album_content = "";
 
 				#UPDATE TIMEING + CURRENT STATUS
 				A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s, m_push.current_sub = %s WHERE device = %s", (calculated_item,now.strftime(A_stime),int(album_current_id),str(parameter["d"]), )) #GET ITEM
 				A_mysql.commit()
-				if opret == True: return None;
+				if operation_return == True: return None;
 			else:
 				A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s WHERE device = %s", (calculated_item,now.strftime(A_stime),str(parameter["d"]), )) #GET ITEM
 				A_mysql.commit()
@@ -178,18 +178,18 @@ def handle_DisplayUpdate(parameter):
 			#SLIDESHOW Mode if Type == 6 = Slideshow
 			if int(display_sql[2]) == 6:
 				album_current_id = int(album_current_id);
-				opret = False;#optional forced retrun True;False
+				operation_return = False;#optional forced retrun True;False
 				path = configuration.Config_Server_Storage + display_sql[3];
 				if not os.path.isdir(path):#if path is folder
 					album_current_id = 0;
-					opret = True;#
+					operation_return = True;#
 				else:
 					files = [f for f in listdir(path) if isfile(join(path, f))];#all files in folder
 					try:
 						album_content = path + "\\" + files[album_current_id] #combine path
 					except IndexError:
-						opret = True;album_current_id = 0;album_content = ""; #reset variables on error
-				if opret == True: return None;#initiate possible return Null;
+						operation_return = True;album_current_id = 0;album_content = ""; #reset variables on error
+				if operation_return == True: return None;#initiate possible return Null;
 
 				#CHECK SLIDESHOW CONTENT
 		if not album_content == None:
@@ -206,6 +206,7 @@ def handle_DisplayUpdate(parameter):
 
 	except Exception, e:
 		logging.error('handle_DisplayUpdate();TimeSelect Error occured:', exc_info=True)
+		return None;
 
 def handle_command(headers,soc):
 	p = decode_parameters(headers["Path"]);

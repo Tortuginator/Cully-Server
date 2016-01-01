@@ -1,4 +1,5 @@
 import configuration
+import transfer
 #Functions
 def PrintError(Address,Content):
 	ErrorImage = "error.jpg";
@@ -18,6 +19,14 @@ def PrintSlideshowImage(Address,Content):
 	image = Content.split("\\");
 	image = image[len(image)-2] + "/" + image[len(image)-1]
 	return '<body style = "font-family:' + font +'!important;background-color:black;margin:0px;padding:0px;"><img src="http://' + Address + '/img/' + image + '" style =" position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);">' + Content + '</src>';
+
+def PrintFullIFrame(Address,Content):
+	return "";
+
+def PrintSpecial(Address,Content):
+	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;">\n%s\n' % (transfer.enable())
+
+
 
 #DO NOT EDIT
 #Backbone functions for server call and input
@@ -41,6 +50,6 @@ def GetPage(Address,Type,Content,overlay,debug):
 
 #Global Function Register
 global functions
-functions = {'0':PrintError,'3':PrintCostumHTML,'4':PrintFullframeImage,'5':PrintCenteredImage,'6':PrintSlideshowImage};#add your customized functions here 'ID',FuntionName || '0' is predefined error
+functions = {'0':PrintError,'3':PrintCostumHTML,'4':PrintFullframeImage,'5':PrintCenteredImage,'6':PrintSlideshowImage,'7':PrintSpecial,'8':PrintFullIFrame};#add your customized functions here 'ID',FuntionName || '0' is predefined error
 global font
 font = "Open Sans";#"MS-Comic sans" not allowed to be used "Open sans" recommanded

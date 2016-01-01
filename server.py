@@ -32,8 +32,7 @@ A_addr = "http://" + str(C_host) + ":" + str(C_port) + "/"
 logging.basicConfig(filename="server_er.log",level=logging.DEBUG)
 #FUNCTIONS
 def decode_parameters(url):
-	if not "?" in url:
-		return
+	if not "?" in url:return;
 	params = url.split("?")
 
 	if "&" in url:
@@ -48,8 +47,11 @@ def decode_parameters(url):
 
 def demultiplex_item(Type,Content):
 	overl = 0 #Activate PSI overlay
-	return pages.GetPage(A_addr,Type,Content,overl,configuration.Config_Server_DebugOverlay)
-
+	try:
+		return pages.GetPage(A_addr,Type,Content,overl,configuration.Config_Server_DebugOverlay)
+	except Exception,e:
+		logging.error('demultiplex_item();Error occured while Rendering / Finally returning values:', exc_info=True)
+		return "Runtime exception occured in the system. This error while rendering the page threatens the system integrety and security. The Error occured in the pages.py. Correct the error or reset the rendering engine to prevent system overload/failture.";
 def handle_gettime(listt,target,total):
 	p=0;total = total + 0.0;
 	for i,r in enumerate(listt):
@@ -89,6 +91,7 @@ def handle_DisplayUpdate(parameter):
 		A_mysql_cur.execute("SELECT * FROM m_push WHERE device = %s", (parameter["d"], ))
 		if not A_mysql_cur.rowcount == 1:return None;
 		display_sql = A_mysql_cur.fetchone()
+		if display_sql[2] == "SUPER-OVERWRITE":return {"content":demultiplex_item("7",""),"id":-1,"type":-1,"name":"SUPER-OVERWRITE"};
 		if display_sql[2] == "" or "|" not in display_sql[2] or ";" not in display_sql[2]:return None;#check if data valid and present
 		if len(str(display_sql[2]).split("|")) <= 1:return None;#check if min. 2 items exist
 		album_current_id = int(display_sql[5]); #get possible sub
@@ -125,8 +128,7 @@ def handle_DisplayUpdate(parameter):
 
 			#Check if nextitem is 0 or +1
 			calculated_item = calculated_item+1
-			if calculated_item >= len(block_item):#check if max value reached
-				calculated_item = 0;
+			if calculated_item >= len(block_item):calculated_item = 0;#check if max value reached
 
 			#GET ITEM
 			A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (block_item[calculated_item], )) #GET ITEM
@@ -137,7 +139,7 @@ def handle_DisplayUpdate(parameter):
 			display_sql = A_mysql_cur.fetchone()
 
 			#SLIDESHOW
-			if int(display_sql[2]) == 6:
+			if int(display_sql[2]) == 6:#SLIDESHOW ID
 				album_current_id = int(album_current_id);
 				operation_return = False;
 				path = configuration.Config_Server_Storage + display_sql[3];
@@ -199,10 +201,12 @@ def handle_DisplayUpdate(parameter):
 
 		#RETURN
 		try:
-			return {"content":demultiplex_item(display_sql[2],content_inner),"id":display_sql[0],"type":display_sql[2],"name":display_sql[1]}
+			content_mplex = demultiplex_item(display_sql[2],content_inner);
+			if content_mplex == "EX_err":return "EX_err";
+			return {"content":content_mplex,"id":display_sql[0],"type":display_sql[2],"name":display_sql[1]}
 		except Exception,e:
 			logging.error('handle_DisplayUpdate();Error occured while Rendering / Finally returning values:', exc_info=True)
-			return None;
+			return "EX_err";
 
 	except Exception, e:
 		logging.error('handle_DisplayUpdate();TimeSelect Error occured:', exc_info=True)
@@ -214,10 +218,16 @@ def handle_command(headers,soc):
 		if p["c"] == "GET": #GET Display
 			return json.dumps(handle_DisplayUpdate(p))
 		else: #UNKNOWN Command
-			return None
+			return None;
+	else:
+		return None;
+		
+
+def generateheader(type,data):
+	return 'HTTP/1.1 200 OK' + '\n' + 'Access-Control-Allow-Origin: *\nCache-Control: no-cache, no-store, must-revalidate' + '\n' + 'Pragma: no-cache' + '\n' + 'Expires: 0' + '\n' + 'Content-length: ' + str(len(data)) + '\n'+ type+ '\n' + '\n' + data
 
 def senddata(data,type,cl):
-	cl.send('HTTP/1.1 200 OK' + '\n' + 'Access-Control-Allow-Origin: *\nCache-Control: no-cache, no-store, must-revalidate' + '\n' + 'Pragma: no-cache' + '\n' + 'Expires: 0' + '\n' + 'Content-length: ' + str(len(data)) + '\n'+ type+ '\n' + '\n' + data)
+	cl.send(generateheader(type,data))
 
 def senderror(cl):
 	senddata(demultiplex_item(0,""),"Content-type: text/html",cl);
@@ -225,25 +235,27 @@ def senderror(cl):
 def readdata(file):
 	try:
 		with open(file, "rb") as image_file:
-			return image_file.read()      
+			return image_file.read();
 	except Exception, e:
-		logging.error('readdata();Error while reading file:', exc_info=True)
+		logging.error('readdata();Error while reading file:', exc_info=True);
+
 def decode_header(raw):
 	try:
 		raw_headers = raw.split("\r\n");headers = dict();
 		if raw_headers[0][:3] == "OPT":
 			return None;
+			
 		if raw_headers[0][:3] == "GET":
-			headers["Request"] = "GET"
-			headers["Path"] = raw_headers[0].split(" ")[1]
-			headers["Version"] = raw_headers[0].split(" ")[2]
+			headers["Request"] = "GET";
+			headers["Path"] = raw_headers[0].split(" ")[1];
+			headers["Version"] = raw_headers[0].split(" ")[2];
 
 		for head in raw_headers:
 			if ":" in head:
-				tmp = head.split(":")
-				headers[tmp[0]] = tmp[1]
+				tmp = head.split(":");
+				headers[tmp[0]] = tmp[1];
 			elif len(head) > 1:
-				headers["Content"] = head
+				headers["Content"] = head;
 		return headers
 
 	except Exception, e:
@@ -251,38 +263,41 @@ def decode_header(raw):
 
 def handler(clientsocket, clientaddr):
 	print "Connection Established " , clientaddr
-	logging.info('System Initialized')
+	logging.info('System Initialized ' + str(clientaddr))	
 	while 1:
-		rec_data = clientsocket.recv(C_buffer)
+		rec_data = clientsocket.recv(C_buffer)#Decode recived Content
 		if not rec_data:
 			break
 		try:
 			headers = decode_header(rec_data)
-			if None == headers:
+			if headers == None: #No decodable Headers eg. Telnet
 				senderror(clientsocket);
-				break
-			if headers["Path"][:2] == "/?":
+				break;
+
+			if headers["Path"][:2] == "/?": #parameter page (location undisclosed)
 				encoded_string = handle_command(headers,clientsocket)
 				if encoded_string == None or encoded_string == "null":
 					senderror(clientsocket);
 				else:
 					senddata(encoded_string,"Content-type: application/json",clientsocket);
-			elif headers["Path"][:5] == "/img/":
+
+			elif headers["Path"][:5] == "/img/":#Possible Image detection
 				path = headers["Path"];
 				path = path.replace("%5C","\\");
-				path = path.replace("/img/",configuration.Config_Server_Storage);
-				if os.path.isfile(path + ".file"):
-					senddata(readdata(path + ".file"),"Content-type: image/png",clientsocket)
+				path = path.replace("/img/",configuration.Config_Server_Storage);#clear paths && replace old origin with server official origin
+
+				if os.path.isfile(path + ".file"):#typical server file
+					senddata(readdata(path + ".file"),"Content-type: image/png",clientsocket)#sendimage
 				else:
 					if os.path.isfile(path):
-						senddata(readdata(path),"Content-type: image/png",clientsocket)
+						senddata(readdata(path),"Content-type: image/png",clientsocket)#if file has no ending *.file
 					else:
-						senderror(clientsocket)
+						senderror(clientsocket);# if booth do not match error response will be send
 			else:
-				if "error" in headers["Path"]:
-					senddata(readdata("error.jpg"),"Content-type: image/png",clientsocket)
+				if "error" in headers["Path"]:#autodetect path for 'error' and send error image // image normally only requested by errorpage
+					senddata(readdata("error.jpg"),"Content-type: image/png",clientsocket)#send error image
 				else:
-					senderror(clientsocket)
+					senderror(clientsocket)#send error on error page error
 		except Exception as e:
 			senderror(clientsocket)
 			logging.error('handler(); Mainroutine error:', exc_info=True)

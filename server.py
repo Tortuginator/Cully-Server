@@ -61,14 +61,14 @@ def handle_gettime(listt,target,total):
 				return 0
 			else:
 				return int(i)-1
-
+	return None;
 def handle_calcitem(listt,id):
 	p = 0;
 	for v,i in enumerate(listt):
 		p = p + int(i);
 		if v == int(id):
 			return p;
-
+	return None;
 def handle_timing(seconds,currid,total_round,block_time):
 	time_c_item = handle_calcitem(block_time,currid)
 	if time_c_item < seconds:

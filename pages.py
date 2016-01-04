@@ -1,5 +1,10 @@
 import configuration
 import transfer
+
+#Global Function Register
+global font
+font = "Open Sans";#"MS-Comic sans" not allowed to be used "Open sans" recommanded
+
 #Functions
 def PrintError(Address,Content):
 	ErrorImage = "error.jpg";
@@ -41,15 +46,10 @@ def GetBackbone(innerHTML,debug):
 	return "<html style=\"" + htmlCSS + "\">\n" + innerHTML + "\n</body>\n" + debugHTML + "\n" + typefaceCSS + "\n</html>";
 
 def GetPage(Address,Type,Content,overlay,debug):
+	functions = {'0':PrintError,'3':PrintCostumHTML,'4':PrintFullframeImage,'5':PrintCenteredImage,'6':PrintSlideshowImage,'7':PrintSpecial,'8':PrintFullIFrame};#add your customized functions here 'ID',FuntionName || '0' is predefined error
 	Type = int(Type);ret = None;
 	Address = configuration.Config_Server_address_public + ':' + str(configuration.Config_Server_port_public);
 	if str(Type) in functions:
 		return GetBackbone(functions[str(Type)](Address,Content),debug);
 	else:
 		return GetBackbone(functions['0'](Address,Content),debug)
-
-#Global Function Register
-global functions
-functions = {'0':PrintError,'3':PrintCostumHTML,'4':PrintFullframeImage,'5':PrintCenteredImage,'6':PrintSlideshowImage,'7':PrintSpecial,'8':PrintFullIFrame};#add your customized functions here 'ID',FuntionName || '0' is predefined error
-global font
-font = "Open Sans";#"MS-Comic sans" not allowed to be used "Open sans" recommanded

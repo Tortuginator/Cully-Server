@@ -26,9 +26,9 @@ def PrintSlideshowImage(Address,Content):
 	return '<body style = "font-family:' + font +'!important;background-color:black;margin:0px;padding:0px;"><img src="http://' + Address + '/img/' + image + '" style =" position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);">' + Content + '</src>';
 
 def PrintFullIFrame(Address,Content):
-	return "";
+	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;">\n<iframe src="' + Content + '" style="position:fixed; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%; border:none; margin:0; padding:0; overflow:hidden; z-index:999999;">Your browser doesn\'t support iframes</iframe>';
 
-def PrintSpecial(Address,Content):
+def PrintDebug(Address,Content):
 	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;">\n%s\n' % (transfer.enable())
 
 
@@ -40,13 +40,13 @@ def GetBackbone(innerHTML,debug):
 	typefaceCSS = '<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700,300" rel="stylesheet" type="text/css">';
 	htmlCSS = "font-family: '" + font + "', sans-serif !important;"
 	if debug == True:
-		debugHTML = '<div style="background-color:black;color:white;position:fixed;top:50px;left:50px;padding:5px;text-align:center;font-size:25;">Developermode <p style="display:inline;color:green;">Active</p> | Connection <p style="display:inline;color:green;">Active</p></div>\n<div id="debug_lower" style="background-color:black;color:white;position:fixed;bottom:50px;right:50px;padding:5px;text-align:center;font-size:25;"></div>\n<div id="debug_upper" style="background-color:black;color:white;position:fixed;top:50px;right:50px;padding:5px;text-align:center;font-size:25;"></div>';
+		debugHTML = '<div style="background-color:black;color:white;position:fixed;top:50px;left:50px;padding:5px;text-align:center;font-size:25;">Developermode <p style="display:inline;color:green;">Active</p> | Connection <p style="display:inline;color:green;">Active</p></div>\n<div id="debug_lower" style="background-color:black;color:white;position:fixed;bottom:50px;right:50px;padding:5px;text-align:center;font-size:25;"></div>\n<div id="debug_upper" style="background-color:black;color:white;position:fixed;top:50px;right:50px;padding:5px;text-align:center;font-size:25;"></div>\n<div id="special_frame" style=""></div>';
 	else:
-		debugHTML = '<div id="debug_lower" style="display:none;"></div>\n<div id="debug_upper" style="display:none;"></div>';
+		debugHTML = '<div id="debug_lower" style="display:none;"></div>\n<div id="debug_upper" style="display:none;"></div>\n<div id="special_frame" style=""></div>';
 	return "<html style=\"" + htmlCSS + "\">\n" + innerHTML + "\n</body>\n" + debugHTML + "\n" + typefaceCSS + "\n</html>";
 
 def GetPage(Address,Type,Content,overlay,debug):
-	functions = {'0':PrintError,'3':PrintCostumHTML,'4':PrintFullframeImage,'5':PrintCenteredImage,'6':PrintSlideshowImage,'7':PrintSpecial,'8':PrintFullIFrame};#add your customized functions here 'ID',FuntionName || '0' is predefined error
+	functions = {'0':PrintError,'2':PrintCostumHTML,'3':PrintCostumHTML,'4':PrintFullframeImage,'5':PrintCenteredImage,'6':PrintSlideshowImage,'7':PrintDebug,'8':PrintFullIFrame};#add your customized functions here 'ID',FuntionName || '0' is predefined error
 	Type = int(Type);ret = None;
 	Address = configuration.Config_Server_address_public + ':' + str(configuration.Config_Server_port_public);
 	if str(Type) in functions:

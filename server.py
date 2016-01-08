@@ -8,7 +8,7 @@ import MySQLdb
 import datetime
 import math
 import __future__
-import Data_gov
+import psi
 import pages
 import configuration
 from os import listdir
@@ -77,6 +77,9 @@ def handle_timing(seconds,currid,total_round,block_time):
 		return handle_gettime(block_time,b,total_round);
 	else:
 		return int(currid);
+def handle_TimeUpdate(A_mysql_cur,device):
+	now = datetime.datetime.now();
+	A_mysql_cur.execute("UPDATE m_devices SET m_devices.LastSeen = %s WHERE m_devices.UID = %s", (now.strftime(A_stime),int(device), )) #Force Update
 
 def handle_DisplayUpdate(parameter):
 	#ALGORITHM COPYRIGHT FELIX FRIEDBERGER 2015/2016 DO NOT DISTRIBUTE FREELY
@@ -91,8 +94,10 @@ def handle_DisplayUpdate(parameter):
 		A_mysql_cur.execute("SELECT * FROM m_push WHERE device = %s", (parameter["d"], ))
 		if not A_mysql_cur.rowcount == 1:return None;
 		display_sql = A_mysql_cur.fetchone()
-		if display_sql[2] == "SUPER-OVERWRITE":return {"content":demultiplex_item("7",""),"id":-1,"type":-1,"name":"SUPER-OVERWRITE"};
+		handle_TimeUpdate(A_mysql_cur,parameter["d"]);
+		if display_sql[2] == "SUPER-OVERWRITE":return {"content":demultiplex_item("7",""),"id":-1,"type":-1,"name":"OVERWRITE"};
 		if display_sql[2] == "" or "|" not in display_sql[2] or ";" not in display_sql[2]:return None;#check if data valid and present
+		content_command = display_sql[6];
 		if len(str(display_sql[2]).split("|")) <= 1:return None;#check if min. 2 items exist
 		album_current_id = int(display_sql[5]); #get possible sub
 
@@ -137,8 +142,8 @@ def handle_DisplayUpdate(parameter):
 				A_mysql.commit()
 				return None;#ID does not exist
 			display_sql = A_mysql_cur.fetchone()
-
 			#SLIDESHOW
+			if display_sql[2] == "":return None; #IF no type is set
 			if int(display_sql[2]) == 6:#SLIDESHOW ID
 				album_current_id = int(album_current_id);
 				operation_return = False;
@@ -199,14 +204,20 @@ def handle_DisplayUpdate(parameter):
 		else:
 			content_inner = display_sql[3];
 
+		#PSI
+		file_psi = open('psi.val', 'r');dPSI = file_psi.readlines();dPSI = json.loads(dPSI[0]);
+
 		#RETURN
 		try:
 			content_mplex = demultiplex_item(display_sql[2],content_inner);
-			if content_mplex == "EX_err":return "EX_err";
-			return {"content":content_mplex,"id":display_sql[0],"type":display_sql[2],"name":display_sql[1]}
+			if content_mplex == "EX_err":return {"error":"EX_err"};
+			if content_command != "" and configuration.Config_Server_CommandSystem == True and content_command != "NULL":
+				return {"content":content_mplex,"id":display_sql[0],"type":display_sql[2],"name":display_sql[1],"command":content_command,"PSI":{"Int":int(dPSI["PSI"]),"Time":str(dPSI["time"])}}
+			else:
+				return {"content":content_mplex,"id":display_sql[0],"type":display_sql[2],"name":display_sql[1],"PSI":{"Int":int(dPSI["PSI"]),"Time":str(dPSI["time"])}}
 		except Exception,e:
 			logging.error('handle_DisplayUpdate();Error occured while Rendering / Finally returning values:', exc_info=True)
-			return "EX_err";
+			return {"error":"EX_err"};
 
 	except Exception, e:
 		logging.error('handle_DisplayUpdate();TimeSelect Error occured:', exc_info=True)
@@ -293,6 +304,11 @@ def handler(clientsocket, clientaddr):
 						senddata(readdata(path),"Content-type: image/png",clientsocket)#if file has no ending *.file
 					else:
 						senderror(clientsocket);# if booth do not match error response will be send
+			elif headers["Path"][:4] == "/PSI":#Possible PSI REQUEST
+				if os.path.isfile("psi.val"):
+					senddata(readdata("psi.val"),"Content-type: application/json",clientsocket)#sendimage
+				else:
+					senderror(clientsocket);
 			else:
 				if "error" in headers["Path"]:#autodetect path for 'error' and send error image // image normally only requested by errorpage
 					senddata(readdata("error.jpg"),"Content-type: image/png",clientsocket)#send error image
@@ -310,6 +326,7 @@ if __name__ == "__main__":
 	serversocket.bind(addr)
 	serversocket.listen(2)
 	logging.info('System Initialized')
+	thread.start_new_thread(psi.PSIAutoUpdate, ("psi.val", ))
 	print "***|SERVER started on %s:%s with buffer size %s bytes|***" % (C_host,C_port,C_buffer) 
 	while 1:
 		clientsocket, clientaddr = serversocket.accept()

@@ -1,0 +1,20 @@
+{
+	"Server": {
+		"Port": 5541,
+		"PublicPort": 5541,
+		"LocalAddress": "localhost",
+		"PublicAddress": "localhost",
+		"Buffer": 3072,
+		"Storage": "C:\\xampp\\htdocs\\php\\storage\\",
+		"TimeFormat": "%Y-%m-%d %H:%M:%S",
+		"Debug": "TRUE",
+		"Command": "FALSE",
+		"ModOverlay": "TRUE"
+	},
+	"MYSQL": {
+		"Host": "localhost",
+		"Password": "test123",
+		"Username": "root",
+		"Database": "sys"
+	}
+}

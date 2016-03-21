@@ -55,6 +55,7 @@ def demultiplex_item(Type,Content):
 def handle_gettime(listt,target,total):
 	p=0;total = total + 0.0;
 	for i,r in enumerate(listt):
+		print "Total:",total,"v_P:",p,"v_i",i,"target",target,"v_r",r
 		p = p + ((int(r)+0.0)/total)	
 		if p > ((target+0.0)/total):
 			if i == 0:
@@ -63,15 +64,19 @@ def handle_gettime(listt,target,total):
 				return int(i)-1
 	return None;
 def handle_calcitem(listt,id):
-	p = 0;
+	p = 0;#print listt;
 	for v,i in enumerate(listt):
+		#print "V:",v,"I:",i,"ID:",id
 		p = p + int(i);
 		if v == int(id):
 			return p;
 	return None;
 def handle_timing(seconds,currid,total_round,block_time):
+	print seconds,currid,total_round,block_time
 	time_c_item = handle_calcitem(block_time,currid)
+	print time_c_item
 	if time_c_item < seconds:
+		print time_c_item,seconds
 		a = seconds + time_c_item;
 		b = a%time_c_item;
 		return handle_gettime(block_time,b,total_round);
@@ -95,7 +100,6 @@ def handle_DisplayUpdate(parameter):
 		if not A_mysql_cur.rowcount == 1:return None;
 		display_sql = A_mysql_cur.fetchone()
 		handle_TimeUpdate(A_mysql_cur,parameter["d"]);
-		if display_sql[2] == "SUPER-OVERWRITE":return {"content":demultiplex_item("7",""),"id":-1,"type":-1,"name":"OVERWRITE"};
 		if display_sql[2] == "" or "|" not in display_sql[2] or ";" not in display_sql[2]:return None;#check if data valid and present
 		content_command = display_sql[6];
 		if len(str(display_sql[2]).split("|")) <= 1:return None;#check if min. 2 items exist
@@ -130,7 +134,7 @@ def handle_DisplayUpdate(parameter):
 		if cycle_time_overall >= int(cycle_current_item_time): #NEXT ITEM
 			album_content = None;
 			calculated_item = handle_timing(cycle_time_overall,cycle_current,cycle_duration,block_time);
-
+			print calculated_item
 			#Check if nextitem is 0 or +1
 			calculated_item = calculated_item+1
 			if calculated_item >= len(block_item):calculated_item = 0;#check if max value reached
@@ -175,6 +179,7 @@ def handle_DisplayUpdate(parameter):
 		else:
 			#STAY
 			calculated_item = handle_timing(cycle_time_overall,cycle_current,cycle_duration,block_time);
+			print calculated_item
 			A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (block_item[calculated_item], )) #GET ITEM
 			if not A_mysql_cur.rowcount == 1:
 				A_mysql_cur.execute("UPDATE m_push SET m_push.current = %s, m_push.current_time = %s WHERE device = %s", (int(calculated_item)+1,now.strftime(A_stime),str(parameters["d"]), )) #Force Update pn error
@@ -205,16 +210,20 @@ def handle_DisplayUpdate(parameter):
 			content_inner = display_sql[3];
 
 		#PSI
-		file_psi = open('psi.val', 'r');dPSI = file_psi.readlines();dPSI = json.loads(dPSI[0]);
+		try:
+			file_psi = open('psi.val', 'r');dPSI = file_psi.readlines();dPSI = json.loads(dPSI[0]);
+		except Exception,e:
+			file_psi = {"psi":0,"time":0}
+			logging.error('handle_DisplayUpdate();Error reading psi.val', exc_info=True)
 
 		#RETURN
 		try:
 			content_mplex = demultiplex_item(display_sql[2],content_inner);
 			if content_mplex == "EX_err":return {"error":"EX_err"};
 			if content_command != "" and configuration.Config_Server_CommandSystem == True and content_command != "NULL":
-				return {"content":content_mplex,"id":display_sql[0],"type":display_sql[2],"name":display_sql[1],"command":content_command,"PSI":{"Int":int(dPSI["PSI"]),"Time":str(dPSI["time"])}}
+				return {"content":content_mplex,"id":display_sql[0],"type":display_sql[2],"name":display_sql[1],"command":content_command,"PSI":{"Int":int(dPSI["PSI"]),"time":str(dPSI["time"])}}
 			else:
-				return {"content":content_mplex,"id":display_sql[0],"type":display_sql[2],"name":display_sql[1],"PSI":{"Int":int(dPSI["PSI"]),"Time":str(dPSI["time"])}}
+				return {"content":content_mplex,"id":display_sql[0],"type":display_sql[2],"name":display_sql[1],"PSI":{"Int":int(dPSI["PSI"]),"time":str(dPSI["time"])}}
 		except Exception,e:
 			logging.error('handle_DisplayUpdate();Error occured while Rendering / Finally returning values:', exc_info=True)
 			return {"error":"EX_err"};
@@ -248,7 +257,7 @@ def readdata(file):
 		with open(file, "rb") as image_file:
 			return image_file.read();
 	except Exception, e:
-		logging.error('readdata();Error while reading file:', exc_info=True);
+		logging.error('readdata();Error while reading file:'+file, exc_info=True);
 
 def decode_header(raw):
 	try:

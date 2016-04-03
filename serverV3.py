@@ -8,7 +8,6 @@ import MySQLdb
 import datetime
 import math
 import __future__
-import psi
 import pages
 from os import listdir
 from os.path import isfile, join
@@ -18,6 +17,8 @@ import Modules
 global D_StartTime
 global Configuration
 D_StartTime = datetime.datetime.now()
+
+global gPSI
 
 #FUNCTIONS
 def decode_parameters(url):
@@ -97,7 +98,7 @@ def handle_command(headers,soc):
 			if t != None:
 				return json.dumps(t)
 			else:
-				return Modules.FrameContent.InternalError("Display Update function returned NONE-object");
+				return json.dumps(Modules.FrameContent.InternalError("Display Update function returned NONE-object"));
 		else: #UNKNOWN Command
 			return None;
 	else:
@@ -111,7 +112,8 @@ def senddata(data,type,cl):
 	cl.send(generatepacket(type,data))
 
 def senderror(cl,detail = None):
-	senddata(json.dumps(Modules.FrameContent.InternalError(detail)),"Content-type: text/html",cl);
+	print "Send JSON Error"
+	senddata(json.dumps(Modules.FrameContent.InternalError(detail)),"Content-type: application/json",cl);
 	
 def readdata(file):
 	try:
@@ -173,10 +175,7 @@ def handler(clientsocket, clientaddr):
 					else:
 						senderror(clientsocket);# if booth do not match error response will be send
 			elif headers["Path"][:4] == "/PSI":#Possible PSI REQUEST
-				if os.path.isfile("psi.val"):
-					senddata(readdata("psi.val"),"Content-type: application/json",clientsocket)#sendimage
-				else:
-					senderror(clientsocket);
+				senddata(gPSI,"Content-type: application/json",clientsocket)#sendimage
 			else:
 				if "error" in headers["Path"]:#autodetect path for 'error' and send error image // image normally only requested by errorpage
 					senddata(readdata("error.jpg"),"Content-type: image/png",clientsocket)#send error image
@@ -210,7 +209,7 @@ if __name__ == "__main__":
 	serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	serversocket.bind(addr)
 	serversocket.listen(2)
-	thread.start_new_thread(psi.PSIAutoUpdate, ("psi.val", ))
+	thread.start_new_thread(Modules.psi.PSIAutoUpdate, ())
 	print "***|SERVER started on %s:%s with buffer size %s bytes|***" % (Configuration["Server"]["LocalAddress"],Configuration["Server"]["Port"],Configuration["Server"]["Buffer"]) 
 	while 1:
 		clientsocket, clientaddr = serversocket.accept()

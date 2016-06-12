@@ -11,7 +11,7 @@ import datetime as dt
 
 API_KEY = "781CF461BB6606AD28A78E343E0E41767E8B7FEDB4F45556";#ONLY for Internalusage
 global gPSI
-gPSI = {"PSI":-1,"time":0}
+gPSI = {"PSI":-1,"time":"0"}
 
 class FrameTimer:
 	@staticmethod
@@ -25,8 +25,8 @@ class FrameTimer:
 		inCycleTime = TimeDifference%(FrameTimer.GetCycleTime(Frames))
 		
 		#Only for Debug
-		print FrameTimer.GetCycleTime(Frames),inCycleTime
-		print "Corresponding item",FrameTimer.GetItemByTime(Frames,inCycleTime)
+		#FrameTimer.GetCycleTime(Frames),inCycleTime
+		#FrameTimer.GetItemByTime(Frames,inCycleTime)
 		
 		#Return Item to the corresponding time
 		return FrameTimer.GetItemByTime(Frames,inCycleTime)
@@ -57,8 +57,11 @@ class FrameContent:
 
 	@staticmethod
 	def InternalError(Detail = None):
-		return {"content":"<center><h1>Internal Server Error</h1></center>","id":-1,"type":0,"name":"Error","debug-detail":Detail}
+		return {"content":'<div style="position: absolute;top: 50%;left: 50%;width:300px;height:500px;transform: translate(-50%, -50%);border-radius:5px;background-color:red"><div style="margin: 0 auto;border-radius:50%;border:10px solid white;width:150px;height:150px;margin-top:15px;"><div style="background-color:white;height:20px;width:100px;margin: 0 auto;margin-top:65px;"></div></div><center style="color:white;"><h1 style="color:white;">Internal Error</h1></center></div>',"id":-1,"type":0,"name":"Error","debug-detail":Detail}
 
+	@staticmethod
+	def InternalVisibleError(Detail = None):
+		return {"content":'<div style="position: absolute;top: 50%;left: 50%;width:300px;height:500px;transform: translate(-50%, -50%);border-radius:5px;background-color:red"><div style="margin: 0 auto;border-radius:50%;border:10px solid white;width:150px;height:150px;margin-top:15px;"><div style="background-color:white;height:20px;width:100px;margin: 0 auto;margin-top:65px;"></div></div><center style="color:white;"><h1 style="color:white;">Internal Error</h1><p style="width:80%;margin:0 auto;color:white;">' + Detail + '</p></center></div>',"id":-1,"type":0,"name":"Error","debug-detail":Detail}
 
 	@staticmethod
 	def HTMLframe(Itype,Icontent,ID,Configuration):
@@ -67,7 +70,6 @@ class FrameContent:
 	@staticmethod
 	def ReadPSI():
 		try:
-			print gPSI
 			dPSI = gPSI
 		except Exception,e:
 			raise

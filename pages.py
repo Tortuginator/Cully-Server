@@ -17,13 +17,16 @@ def PrintError(Address,Content,ID):
 	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;background-color:' + ErrorBackground + ';"><img src="' + Address + '' + ErrorImage + '" style=" position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);"></src>';
 
 def PrintFullframeImage(Address,Content,ID):
-	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;background-image:url(\'' + Address + 'img/' + Content + '\');background-position: right top;background-size: 100%;">'
+	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;background-image:url(\'' + Address + 'img/items/' + Content + '\');background-position: right top;background-size: 100%;">'
 
 def PrintCostumHTML(Address,Content,ID):
 	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;">\n%s\n' % (Content)
 
 def PrintCenteredImage(Address,Content,ID):
-	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;"><img src="' + Address + 'img/' + Content + '" style =" position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);"></src>';
+	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;"><img src="' + Address + 'img/items/' + Content + '" style =" position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);"></src>';
+
+def PrintCalendar(Address,Content,ID):
+	return '';
 
 def PrintSlideshowImage(Address,Content,ID):
 	SlideshowFrameTime = int(Content.split(";")[1])
@@ -42,7 +45,7 @@ def PrintSlideshowImage(Address,Content,ID):
 
 	else:
 		return None
-	return '<body style = "font-family:' + font +'!important;background-color:black;margin:0px;padding:0px;"><img src="' + Address + 'img/' + Content.split(";")[0] + '/' + files[TimeUnits] + '" style ="max-height: 100%;max-width: 100%;position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);"></src>';
+	return '<body style = "font-family:' + font +'!important;background-color:black;margin:0px;padding:0px;"><img src="' + Address + 'img/slideshows/' + Content.split(";")[0] + '/' + files[TimeUnits] + '" style ="max-height: 100%;max-width: 100%;position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);"></src>';
 
 def PrintFullIFrame(Address,Content,ID):
 	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;">\n<iframe src="' + Content + '" style="position:fixed; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%; border:none; margin:0; padding:0; overflow:hidden; z-index:999998;">Your browser doesn\'t support iframes</iframe>';
@@ -62,7 +65,6 @@ def GetBackbone(innerHTML,debug):
 
 def GetPage(Type,Content,ID,Configuration):
 	debug = Configuration["Server"]["Debug"]
-	print debug
 	global lConfig
 	lConfig = Configuration
 

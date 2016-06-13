@@ -25,12 +25,14 @@ def PrintCostumHTML(Address,Content,ID):
 def PrintCenteredImage(Address,Content,ID):
 	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;"><img src="' + Address + 'img/items/' + Content + '" style =" position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);"></src>';
 
+def PrintYoutube(Address,Content,ID):
+	return "<body style = 'font-family:" + font +"!important;margin:0px;padding:0px;background-color:black;'><iframe id='playerId' type='text/html' width='100%' height='100%' src='http://www.youtube.com/embed/" + Content + "?enablejsapi=1&rel=0&playsinline=0&autoplay=1&html5=1' frameborder='0' allowfullscreen>";
 def PrintCalendar(Address,Content,ID):
 	return '';
 
 def PrintSlideshowImage(Address,Content,ID):
 	SlideshowFrameTime = int(Content.split(";")[1])
-	StorageLocation = lConfig["Server"]["Storage"] +  Content.split(";")[0]
+	StorageLocation = lConfig["Server"]["Storage"] +  "\\slideshows\\" + Content.split(";")[0]
 
 	if os.path.isdir(StorageLocation):
 		files = [f for f in listdir(StorageLocation) if isfile(join(StorageLocation, f))];
@@ -54,7 +56,7 @@ def PrintFullIFrame(Address,Content,ID):
 #DO NOT EDIT
 #Backbone functions for server call and input
 def GetBackbone(innerHTML,debug):
-	if (innerHTML == None):innerHTML == "";
+	if (innerHTML == None):innerHTML = "";
 	typefaceCSS = '<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700,300" rel="stylesheet" type="text/css">';
 	htmlCSS = "font-family: '" + font + "', sans-serif !important;"
 	if debug == True:
@@ -68,7 +70,7 @@ def GetPage(Type,Content,ID,Configuration):
 	global lConfig
 	lConfig = Configuration
 
-	functions = {'0':PrintError,'2':PrintCostumHTML,'3':PrintCostumHTML,'4':PrintFullframeImage,'5':PrintCenteredImage,'6':PrintSlideshowImage,'8':PrintFullIFrame};#add your customized functions here 'ID',FuntionName || '0' is predefined error
+	functions = {'0':PrintError,'2':PrintCostumHTML,'3':PrintCostumHTML,'4':PrintFullframeImage,'5':PrintCenteredImage,'6':PrintSlideshowImage,'8':PrintFullIFrame,'9':PrintYoutube};#add your customized functions here 'ID',FuntionName || '0' is predefined error
 	Type = int(Type);
 
 	if not ID in ItemStorage:

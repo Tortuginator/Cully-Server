@@ -21,7 +21,14 @@ D_StartTime = datetime.datetime.now()
 global D_Temporary_Clients
 D_Temporary_Clients = dict()
 global gPSI
-
+global D_time_reset;
+D_time_reset = datetime.datetime.now()
+global D_resync;
+D_resync = datetime.datetime.now()
+global D_stat_resync
+D_stat_resync = list();
+global D_resync_times
+D_resync_times = dict();
 #FUNCTIONS
 def decode_parameters(url):
 	if not "?" in url:return;
@@ -92,22 +99,83 @@ def handle_DisplayUpdate(parameter):
 
 	return [1,Modules.FrameContent.GenerateFrame(display_sql[2],display_sql[3],display_sql[1],display_sql[0],Configuration,Ext_Command)]
 
+def AppendClientDetails(ident,input = "",registered = 0):
+	if not ident in D_Temporary_Clients:
+		D_Temporary_Clients[ident] = dict();
+	if registered != 0 and (registered == True or registered == False):
+		D_Temporary_Clients[ident]["registered"] = registered;
+	if input != "":
+		tmp = input.split(",");
+		for e,d in enumerate(tmp):
+			cce = tmp[int(e)].split(">>");
+			if "session" == (cce[0].replace(" ","")):
+				if not "clients" in D_Temporary_Clients[ident]:
+					D_Temporary_Clients[ident]["clients"] = list();
+				if not cce[1] in D_Temporary_Clients[ident]["clients"]:
+					D_Temporary_Clients[ident]["clients"].append(cce[1])
+			else:
+				D_Temporary_Clients[ident][cce[0].replace(" ","")] = cce[1];
+	
+
 def handle_command(headers,soc):
+	global D_Temporary_Clients
+	global D_time_reset
+	global D_stat_resync
+	global D_resync
+	global D_resync_times
+	local_resync = False;
 	p = decode_parameters(headers["Path"]);
 	if ("d" in p) and ("c" in p):
 		if p["c"] == "GET": #GET Display
-			t = handle_DisplayUpdate(p)
+
+			#Reset the Client list each minute
+			if D_time_reset <= datetime.datetime.now():
+				D_time_reset = datetime.datetime.now();
+				D_time_reset += datetime.timedelta(minutes = 1);
+				D_Temporary_Clients = dict();
+
 			if "x-config" in headers and "x-resolution" in headers:
-				D_Temporary_Clients[str(p["d"])] = headers["x-config"] + ",resolution>>" + headers["x-resolution"];
+				AppendClientDetails(str(p["d"]),input = headers["x-config"] + ",resolution>>" + headers["x-resolution"])
+				if "session" in headers["x-config"]:
+					t_session = headers["x-config"].split("session>>")[1].split(",")[0];
+					t_interval = headers["x-config"].split("interval>>")[1].split(",")[0];
+					if str(p["d"]) in D_Temporary_Clients and t_session in D_stat_resync:
+						if "clients" in D_Temporary_Clients[str(p["d"])]:
+							local_resync = True;
+							del D_stat_resync[D_stat_resync.index(t_session)]
+							print "Resync activated!"
+
+			#Handle ReSYNC
+			if D_resync <= datetime.datetime.now():
+				D_resync = datetime.datetime.now();
+				D_resync += datetime.timedelta(minutes = 4);
+				D_stat_resync = list();
+				D_resync_times = dict();
+				for c in D_Temporary_Clients:
+					if D_Temporary_Clients[c]["clients"] > 1:
+						print "Updated Resync stats"
+						for i in D_Temporary_Clients[c]["clients"]:
+							D_stat_resync.append(i)
+
+
+			#Calculate Display Update
+			t = handle_DisplayUpdate(p);
+
 			if t[0] == 1:
 				if "x-config" in headers and "x-resolution" in headers and str(p["d"]) in D_Temporary_Clients:
-					D_Temporary_Clients[str(p["d"])] += ",registered>>Yes";
+					AppendClientDetails(str(p["d"]),registered = True);
+				if local_resync == True:
+					tmp_d = datetime.datetime.now();
+					if not str(p["d"]) in D_resync_times:
+						D_resync_times[str(p["d"])] = (int(tmp_d.second) + int(t_interval)+ int(t_interval))*1000 + tmp_d.microsecond/1000;
+					t[1]["resync"] = D_resync_times[str(p["d"])];
+
 				return json.dumps(t[1])
 			else:
 				if t[0] == 2:
 						if "x-config" in headers and "x-resolution" in headers and str(p["d"]) in D_Temporary_Clients:
-							D_Temporary_Clients[str(p["d"])] += ",registered>>No";
-						return json.dumps(Modules.FrameContent.InternalVisibleError("The ID of this device is not setup/configured : " + p["d"]));
+							AppendClientDetails(str(p["d"]),registered = False);
+						return json.dumps(Modules.FrameContent.InternalVisibleError("The ID of this device is not setup/configured: " + p["d"]));
 				return json.dumps(Modules.FrameContent.InternalError("Display Update function returned NONE-object"));
 		else: #UNKNOWN Command
 			return None;
@@ -177,24 +245,13 @@ def handler(clientsocket, clientaddr):
 				path = path.replace("%5C","\\");
 				path = path.replace("/img/",Configuration["Server"]["Storage"]);#clear paths && replace old origin with server official origin
 
-				if os.path.isfile(path + ".file"):#typical server file
-					senddata(readdata(path + ".file"),"Content-type: image/png",clientsocket)#sendimage
+				if os.path.isfile(path):
+					senddata(readdata(path),"Content-type: image/png",clientsocket)#if file has no ending *.file
 				else:
-					if os.path.isfile(path):
-						senddata(readdata(path),"Content-type: image/png",clientsocket)#if file has no ending *.file
-					else:
-						senderror(clientsocket,"Image error");# if booth do not match error response will be send
+					senderror(clientsocket,"Image error");# if booth do not match error response will be send
 
 			elif headers["Path"][:15] == "/API/UNKclients":
-				#convert
-				tmp_clients = dict();
-				for i in D_Temporary_Clients:
-					tmp_clients[i] = dict();
-					tmp = D_Temporary_Clients[i].split(",");
-					for e,d in enumerate(tmp):
-						cce = tmp[int(e)].split(">>");
-						tmp_clients[i][cce[0].replace(" ","")] = cce[1];
-				senddata(json.dumps(tmp_clients),"Content-type: application/json",clientsocket);
+				senddata(json.dumps(D_Temporary_Clients),"Content-type: application/json",clientsocket);
 
 			elif headers["Path"][:4] == "/PSI":#Possible PSI REQUEST
 				senddata(gPSI,"Content-type: application/json",clientsocket)#sendimage

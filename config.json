@@ -1,13 +1,13 @@
 {
 	"Server": {
-		"Port": 5541,
-		"PublicPort": 5541,
-		"LocalAddress": "localhost",
-		"PublicAddress": "localhost",
+		"Port": 443,
+		"PublicPort": 443,
+		"LocalAddress": "172.18.99.194",
+		"PublicAddress": "172.18.99.194",
 		"Buffer": 3072,
 		"Storage": "C:\\xampp\\htdocs\\php\\storage\\",
 		"TimeFormat": "%Y-%m-%d %H:%M:%S",
-		"Debug": "TRUE",
+		"Debug": "FALSE",
 		"Command": "FALSE",
 		"ModOverlay": "TRUE"
 	},

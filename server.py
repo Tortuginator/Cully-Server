@@ -32,6 +32,8 @@ global D_stat_resync
 D_stat_resync = list();
 global D_resync_times
 D_resync_times = dict();
+global D_enabled
+D_enabled = dict();
 #FUNCTIONS
 def PrintException():
     exc_type, exc_obj, tb = sys.exc_info()
@@ -143,9 +145,23 @@ def handle_command(headers,soc):
 	global D_stat_resync
 	global D_resync
 	global D_resync_times
+	global D_enabled
 	local_resync = False;
 	p = decode_parameters(headers["Path"]);
 	if ("d" in p) and ("c" in p):
+		if p["c"] == "ENB":
+			if "X" in p["d"]:
+				data = p["d"].split("X");
+			else:
+				data = [p["d"]];
+			r = dict();
+			for i in data:
+				if i == "":break;
+				r[i.split(";")[0]] = i.split(";")[1];
+			data = r;
+			for i,v in data.items():
+				D_enabled[str(i)] = data[str(i)];
+		return json.dumps(D_enabled);
 		if p["c"] == "GET": #GET Display
 			#Reset the Client list each minute
 			if D_time_reset <= datetime.datetime.now():

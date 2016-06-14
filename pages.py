@@ -89,7 +89,7 @@ def PrintCalendar(Address,Content,ID):
 		Calendars.append(ID);
 		ItemStorage[ID]["items"] = UpdateCalendar(Content);
 
-	output = '<body style="font-family:' + font +'!important;margin:0px;padding:0px;background-color:#008742;"><center><p style="margin:0px;margin-bottom:30px;margin-top:60px;width:100%;font-size:5vw;color:white;font-weight:700;">Upcoming events</p></center>';
+	output = '<body style="font-family:' + font +'!important;margin:0px;padding:0px;background-color:#008742;"><center><p style="margin:0px;margin-bottom:30px;margin-top:60px;width:100%;font-size:96px;color:white;font-weight:700;">Upcoming events</p></center>';
 	if len(ItemStorage[ID]["items"]["Today"]) != 0:
 		output += '<div style="background-color:white;width:900px;padding-left:50px;padding-bottom:15px;margin: 0 auto;"><p style="color:#008742;margin-bottom:20px;font-size:40px;font-weight:700;font-family:open sans;text-transform:uppercase;padding-bottom:0px;margin-bottom:0px;margin-top:30px;">TODAY</p>';
 		for i in ItemStorage[ID]["items"]["Today"]:

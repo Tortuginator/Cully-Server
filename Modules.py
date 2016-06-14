@@ -162,7 +162,7 @@ class psi:
 								if pTPY["date"] != dLast:
 									dLast = pTPY["date"];
 									pLast = pTPY["psi"];
-									logging.log(pTPY);
+									logging.info(pTPY);
 									break;#exit unlimited loop
 								else:
 									print "[+][PSI] Forcing update loop"

@@ -50,3 +50,4 @@ storage/1.jpg
 *.pyc
 compile.py
 *.pyc
+*.txt

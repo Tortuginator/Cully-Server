@@ -33,11 +33,16 @@ def PrintException():
     linecache.checkcache(filename)
     line = linecache.getline(filename, lineno, f.f_globals)
     print 'EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj)
+
 def UpdateCalendar(link):
 	#"http://www.gess.sg/calendar/page_604.ics"
-	output = urllib2.urlopen(link).read()
-	finalcalendar = mod_calendar.calendar.StrToArr(output);
 	returncalendar = dict();returncalendar["Today"] = list();returncalendar["Tomorrow"] = list();returncalendar["day3"] = list();returncalendar["day4"] = list();returncalendar["day5"] = list();
+	try:
+		output = urllib2.urlopen(link,timeout=4).read()
+		finalcalendar = mod_calendar.calendar.StrToArr(output);
+	except Exception,e:
+		logging.error("failed to load calendar " + e)
+		return returncalendar
 	morning = datetime.now()
 	morning -= timedelta(hours=morning.hour,minutes = morning.minute, seconds = morning.second, microseconds =  morning.microsecond)
 	for i in finalcalendar:
@@ -67,7 +72,7 @@ def PrintError(Address,Content,ID):
 	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;background-color:' + ErrorBackground + ';"><img src="' + Address + '' + ErrorImage + '" style=" position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);"></src>';
 
 def PrintFullframeImage(Address,Content,ID):
-	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;background-color:black;background-image:url(\'' + Address + 'img/items/' + Content + '\');background-position: right top;	background-repeat: no-repeat;background-size: 100%;">'
+	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;width:100%;height:100%;background-color:black;"><img style="position: absolute;top: 0;bottom: 0;left: 0;right: 0;width: 100%;margin: auto;" src="' + Address + 'img/items/' + Content + '">'
 
 def PrintCostumHTML(Address,Content,ID):
 	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;">\n%s\n' % (Content)

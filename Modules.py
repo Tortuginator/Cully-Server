@@ -57,7 +57,6 @@ class FrameContent:
 		except Exception,e:
 			psi_value = int(-1);
 			psi_time = "N/A"
-			print dPSI;
 
 		produced = {"content":FrameContent.HTMLframe(Itype,Icontent,Iid,Configuration),"id":Iid,"type":Itype,"name":Iname,"enabled":"1","PSI":{"Int":psi_value,"time":psi_time}}
 		if Ext_Command != "" and Configuration["Server"]["Command"] == True and Ext_Command != "NULL":#decide if there is to be a command included
@@ -172,7 +171,7 @@ class psi:
 						pLast = pNow;
 				psi.Write(pLast);
 				print "[+][PSI] Updated @",pLast,"24-hrs"
-				logging.info("New PSI value:" + plast);
+				logging.info("New PSI value:" + pLast);
 		except Exception,e:
 			logging.error(e);
 			print e;

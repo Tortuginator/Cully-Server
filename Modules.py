@@ -58,7 +58,8 @@ class FrameContent:
 			psi_value = int(-1);
 			psi_time = "N/A"
 			print dPSI;
-		produced = {"content":FrameContent.HTMLframe(Itype,Icontent,Iid,Configuration),"id":Iid,"type":Itype,"name":Iname,"PSI":{"Int":psi_value,"time":psi_time}}
+
+		produced = {"content":FrameContent.HTMLframe(Itype,Icontent,Iid,Configuration),"id":Iid,"type":Itype,"name":Iname,"enabled":"1","PSI":{"Int":psi_value,"time":psi_time}}
 		if Ext_Command != "" and Configuration["Server"]["Command"] == True and Ext_Command != "NULL":#decide if there is to be a command included
 			produced["command"] = Ext_Command
 		return produced

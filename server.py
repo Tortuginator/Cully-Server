@@ -15,6 +15,7 @@ from os import listdir
 from os.path import isfile, join
 import logging
 import Modules
+import sys
 #SETTINGS
 logging.basicConfig(filename='log' + datetime.datetime.now().strftime("%Y%m%d%H%M") + ".txt", level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -66,6 +67,7 @@ def handle_TimeUpdate(A_mysql_cur,device):
 	A_mysql_cur.execute("UPDATE m_devices SET m_devices.LastSeen = %s WHERE m_devices.UID = %s", (now.strftime(Configuration["Server"]["TimeFormat"]),device, )) #Force Update
 
 def handle_DisplayUpdate(parameter):
+	global D_enabled
 	try:
 		#ALGORITHM COPYRIGHT FELIX FRIEDBERGER 2015/2016 DO NOT DISTRIBUTE FREELY
 		try:
@@ -116,7 +118,10 @@ def handle_DisplayUpdate(parameter):
 			return [0,None];#ID does not exist
 		display_sql = A_mysql_cur.fetchone()
 
-		return [1,Modules.FrameContent.GenerateFrame(display_sql[2],display_sql[3],display_sql[1],display_sql[0],Configuration,Ext_Command)]
+		rt = Modules.FrameContent.GenerateFrame(display_sql[2],display_sql[3],display_sql[1],display_sql[0],Configuration,Ext_Command);
+		if parameter["d"] in D_enabled:
+			rt["enabled"] = D_enabled[parameter["d"]];
+		return [1,rt]
 	except Exception,e:
 		logging.error(e);
 		PrintException()
@@ -161,7 +166,7 @@ def handle_command(headers,soc):
 			data = r;
 			for i,v in data.items():
 				D_enabled[str(i)] = data[str(i)];
-		return json.dumps(D_enabled);
+			return json.dumps(D_enabled);
 		if p["c"] == "GET": #GET Display
 			#Reset the Client list each minute
 			if D_time_reset <= datetime.datetime.now():

@@ -14,37 +14,92 @@ API_KEY = "781CF461BB6606AD28A78E343E0E41767E8B7FEDB4F45556";#ONLY for Internalu
 global gPSI
 gPSI = {"PSI":-1,"time":"N/A"}
 
+class FrameTimetable:
+	@staticmethod
+	def GetCurrentFrame(content):
+		content = json.loads(content);
+
+		#Get Each date
+		d  = datetime.now()
+		d -= dt.timedelta(hours = d.hour,minutes = d.minute, seconds = d.second, microseconds =  d.microsecond)
+		n = 0;
+		for i in content:
+			if not "start" in i or not "stop" in i:
+				if n==0:
+					n = i["content"];
+					break;
+				else:
+					return [2,"WRONG CONTENT FORMAT"]
+			#Start
+			strStart = i["start"].split("/")
+			diffday = FrameTimetable.dayStrToID(strStart[0]) - d.weekday();
+			dayStart = d + dt.timedelta((7 + diffday) % 7)
+			tmp_delta = dt.timedelta(minutes = int(strStart[1].split(":")[1]),hours = int(strStart[1].split(":")[0]));
+			absoluteStart = dayStart + tmp_delta
+
+			#Stop
+			strStop = i["stop"];
+			tmp_delta = dt.timedelta(minutes = int(strStop.split(":")[1]),hours = int(strStop.split(":")[0]));
+			absoluteStop = d + tmp_delta;
+
+			#Check
+			if (datetime.now() >= absoluteStart) and (datetime.now() <= absoluteStop):
+				#Found Active time
+				return [0,i["content"]];
+
+		#OUT OF LOOP
+		if n!=0:
+			return [0,n]
+		else:
+			return [1,"NO ACTIVE OR NORMAL CONTENT FOUND"]
+
+	@staticmethod		
+	def dayStrToID(str):
+		if str == "Monday":
+			ID = 0;
+		elif str == "Tuesday":
+			ID = 1;
+		elif str == "Wednesday":
+			ID = 2;
+		elif str == "Thursday":
+			ID = 3;
+		elif str == "Friday":
+			ID = 4;
+		elif str == "Saturday":
+			ID = 5;
+		elif str == "Sunday":
+			ID = 6;
+		else:
+			return -1;
+		return ID;
+
 class FrameTimer:
 	@staticmethod
 	def GetFrameIndex(Frames,StartTime):
 		#Get Time Difference from START to NOW
-		now = datetime.now()
-		delta = now - StartTime
+		delta = datetime.now() - StartTime
 		TimeDifference = int(delta.total_seconds())
-
+		print FrameTimer.GetCycleTime(Frames)
+		print TimeDifference
 		#Remove Passed Cycles
 		inCycleTime = TimeDifference%(FrameTimer.GetCycleTime(Frames))
-		
-		#Only for Debug
-		#FrameTimer.GetCycleTime(Frames),inCycleTime
-		#FrameTimer.GetItemByTime(Frames,inCycleTime)
-		
+
 		#Return Item to the corresponding time
 		return FrameTimer.GetItemByTime(Frames,inCycleTime)
 
 	@staticmethod
 	def GetItemByTime(Frames,TargetTime):
 		tmpTime = 0
-		for frameID,time in enumerate(Frames):
-			tmpTime += int(time)
+		for a,b in enumerate(Frames):
+			tmpTime += int(b[1])
 			if tmpTime > TargetTime:#when sum of time is larger than the target time
-				return int(frameID)
+				return int(b[0])
 
 	@staticmethod
 	def GetCycleTime(Frames):
 		tmp = 0; 
 		for FrameID,time in enumerate(Frames):
-			tmp +=int(time)
+			tmp +=int(time[1])
 		return tmp
 
 class FrameContent:
@@ -89,7 +144,31 @@ class FrameContent:
 			dPSI = {"PSI":-1,"time":0}
 			print "FAILED to read and/or decode the PSI file/value"
 		return dPSI
+class validate:
+	@staticmethod
+	def pushToArry(input):#device,current,content,current_time,next_time,current_sub,push_command
+		ret = dict();
+		ret["name"] = input[0]
+		ret["content"] = input[2]
+		ret["command"] = input[6]
+		return ret;
 
+	@staticmethod
+	def content(c):
+		if ":" not in c:
+			return [1,"WRONG FORMAT"]
+		c = c.split("|");
+		#Correct Split
+		t = list();
+		for i in c:
+			if ":" in i:
+				s = i.split(":");
+				if s[0] != "" and s[1] != "":t.append([s[0],s[1]]);
+
+		#if only one item exists
+		if len(t) == 1:
+			t.append(t[0]);
+		return t
 class psi:
 	#SINGAPORE PSI LEVELS
 	@staticmethod

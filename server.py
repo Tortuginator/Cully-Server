@@ -51,48 +51,51 @@ def decode_parameters(url):
 
 
 def handle_DisplayUpdate(parameter):
-	global D_storage
-	#ALGORITHM COPYRIGHT FELIX FRIEDBERGER 2015/2016 DO NOT DISTRIBUTE FREELY
 	try:
-		A_mysql = MySQLdb.Connection(Configuration["MYSQL"]["Host"], Configuration["MYSQL"]["Username"], Configuration["MYSQL"]["Password"],Configuration["MYSQL"]["Database"])
-	except Exception, e:
-		logging.error(e);
-		return [3,"FAILED TO CONNECT TO MYSQL"];
+		global D_storage
+		#ALGORITHM COPYRIGHT FELIX FRIEDBERGER 2015/2016 DO NOT DISTRIBUTE FREELY
+		try:
+			A_mysql = MySQLdb.Connection(Configuration["MYSQL"]["Host"], Configuration["MYSQL"]["Username"], Configuration["MYSQL"]["Password"],Configuration["MYSQL"]["Database"])
+		except Exception, e:
+			logging.error(e);
+			raise Exception('handle_DisplayUpdate() Failed to connect to the MYSQL database',Configuration);
 
-	#CHECK if device exists
-	A_mysql_cur = A_mysql.cursor()
-	A_mysql_cur.execute("SELECT * FROM m_push WHERE device = %s", (parameter["d"], ))
-	if not A_mysql_cur.rowcount == 1:
-		return [2,"UNREGISTERED DEVICE"];
+		#CHECK if device exists
+		A_mysql_cur = A_mysql.cursor()
+		A_mysql_cur.execute("SELECT * FROM m_push WHERE device = %s", (parameter["d"], ))
+		if not A_mysql_cur.rowcount == 1:
+			return [2,"UNREGISTERED DEVICE"];
 
-	DB_Device = A_mysql_cur.fetchone()#device,current,content,current_time,next_time,current_sub,push_command
-	DB_Device = modules.validate.pushToArry(DB_Device);
+		DB_Device = A_mysql_cur.fetchone()#device,current,content,current_time,next_time,current_sub,push_command
+		DB_Device = modules.validate.pushToArry(DB_Device);
 
-	#Setup Cycle Time
-	if not parameter["d"] in D_storage:
-		D_storage[parameter["d"]] = dict();
-		D_storage[parameter["d"]]["time"] = datetime.datetime.now()
-		D_storage[parameter["d"]]["content"] = "";
+		#Setup Cycle Time
+		if not parameter["d"] in D_storage:
+			D_storage[parameter["d"]] = dict();
+			D_storage[parameter["d"]]["time"] = datetime.datetime.now()
+			D_storage[parameter["d"]]["content"] = "";
 
-	#PREPARE DATA SOURCE
-	content = modules.FrameTimetable.GetCurrentFrame(DB_Device["content"]);
-	content = modules.validate.content(content[1])
-	#Reset Start time if the device has new content;
-	if content != D_storage[parameter["d"]]["content"]:
-		D_storage[parameter["d"]]["time"] = datetime.datetime.now();
-		D_storage[parameter["d"]]["content"] = content;
+		#PREPARE DATA SOURCE
+		content = modules.FrameTimetable.GetCurrentFrame(DB_Device["content"]);
+		content = modules.validate.content(content)
+		#Reset Start time if the device has new content;
+		if content != D_storage[parameter["d"]]["content"]:
+			D_storage[parameter["d"]]["time"] = datetime.datetime.now();
+			D_storage[parameter["d"]]["content"] = content;
 
-	#Get Frame based on current Time
-	print content
-	CurrentIndexFrame = modules.FrameTimer.GetFrameIndex(content,D_storage[parameter["d"]]["time"])
+		#Get Frame based on current Time
+		CurrentIndexFrame = modules.FrameTimer.GetFrameIndex(content,D_storage[parameter["d"]]["time"])
 
-	A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (CurrentIndexFrame, ))
-	if not A_mysql_cur.rowcount == 1:
-		return [2,"ITEM NOT FOUND"];
+		A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (CurrentIndexFrame, ))
+		if not A_mysql_cur.rowcount == 1:
+			raise Exception('handle_DisplayUpdate() The item registered in the contentlist is non-existant',CurrentIndexFrame);
 
-	DB_item = A_mysql_cur.fetchone()
-	rt = modules.FrameContent.GenerateFrame(DB_item[2],DB_item[3],DB_item[1],DB_item[0],Configuration,DB_Device["command"]);
-	return [1,rt]
+		DB_item = A_mysql_cur.fetchone()
+		rt = modules.FrameContent.GenerateFrame(DB_item[2],DB_item[3],DB_item[1],DB_item[0],Configuration,DB_Device["command"]);
+		return [1,rt]
+	except:
+		print "[!][CRITICAL] Unexpected error:", sys.exc_info()
+		return [4,"Unexpected error"]
 
 def AppendClientDetails(ident,input = "",registered = 0):
 	if not ident in D_Temporary_Clients:
@@ -160,15 +163,12 @@ def handle_command(headers,soc):
 					if not str(p["d"]) in D_resync_times:
 						D_resync_times[str(p["d"])] = (int(tmp_d.second) + int(t_interval)+ int(t_interval))*1000 + tmp_d.microsecond/1000;
 					t[1]["resync"] = D_resync_times[str(p["d"])];
-
 				return json.dumps(t[1])
-			else:
-
-				if t[0] == 2:
-						if "x-config" in headers and "x-resolution" in headers and str(p["d"]) in D_Temporary_Clients:
-							AppendClientDetails(str(p["d"]),registered = False);
-						return json.dumps(modules.FrameContent.InternalVisibleError("The ID of this device is not setup/configured: " + p["d"]));
-				return json.dumps(modules.FrameContent.InternalError("Display Update function returned NONE-object"));
+			elif t[0] == 2:
+				if "x-config" in headers and "x-resolution" in headers and str(p["d"]) in D_Temporary_Clients:
+					AppendClientDetails(str(p["d"]),registered = False);
+				return json.dumps(modules.FrameContent.InternalVisibleError("The ID of this device is not setup/configured: " + p["d"]));
+			return json.dumps(modules.FrameContent.InternalError("Display Update function returned NONE-object"));
 		else: #UNKNOWN Command
 			return None;
 	else:
@@ -194,7 +194,7 @@ def ResetSync():
 
 def generatepacket(type,data,stored = False):
 	if stored == True:
-		return 'HTTP/1.1 200 OK' + '\n' + 'Access-Control-Allow-Origin: *\n'  + 'Cache-Control:public, max-age=31536000' + '\n' + 'Access-Control-Allow-Headers:x-config,x-resolution' + '\n' + 'Expires: 0' + '\n' + 'Content-length: ' + str(len(data)) + '\n'+ type+ '\n' + '\n' + data
+		return 'HTTP/1.1 200 OK' + '\n' + 'Access-Control-Allow-Origin: *\n'  + 'Cache-Control:max-age=31536000' + '\n' + 'Access-Control-Allow-Headers:x-config,x-resolution' + '\n' + 'Expires: 0' + '\n' + 'Content-length: ' + str(len(data)) + '\n'+ type+ '\n' + '\n' + data
 	else:
 		return 'HTTP/1.1 200 OK' + '\n' + 'Access-Control-Allow-Origin: *\nCache-Control: no-cache, no-store, must-revalidate' + '\n' + 'Pragma: no-cache' + '\n' + 'Access-Control-Allow-Headers:x-config,x-resolution' + '\n' + 'Expires: 0' + '\n' + 'Content-length: ' + str(len(data)) + '\n'+ type+ '\n' + '\n' + data
 
@@ -202,7 +202,7 @@ def senddata(data,type,cl,stored = False):
 	cl.send(generatepacket(type,data,stored))
 
 def senderror(cl,detail = None):
-	print "Send JSON Error:",detail
+	print "[!][WARNING] Error send:",detail
 	senddata(json.dumps(modules.FrameContent.InternalError(detail)),"Content-type: application/json",cl);
 	
 def readdata(file):
@@ -232,49 +232,55 @@ def handler(clientsocket, clientaddr):
 	print "[+][CON] Established " , clientaddr
 	logging.info('Therad Initialized ' + str(clientaddr))	
 	while 1:
-		rec_data = clientsocket.recv(Configuration["Server"]["Buffer"])#Decode recived Content
-		if not rec_data:
-			break
-		headers = decode_header(rec_data)
+		try:
+			rec_data = clientsocket.recv(Configuration["Server"]["Buffer"])#Decode recived Content
+			if not rec_data:
+				break
+			headers = decode_header(rec_data)
 
-		if headers == None: #No decodable Headers eg. Telnet
-			senderror(clientsocket,"Failed to deocde the headers");
-			logging.error("Failed to deocde the headers");
-			break;
-		if headers["Path"][:2] == "/?": #parameter page (location undisclosed)
-			encoded_string = handle_command(headers,clientsocket)
-			if encoded_string == None or encoded_string == "null":
-				senderror(clientsocket,"Command FNC returned None or Null, meaning, command not found");
+			if headers == None: #No decodable Headers eg. Telnet
+				senderror(clientsocket,"Failed to deocde the headers");
+				logging.error("Failed to deocde the headers");
+				break;
+			if headers["Path"][:2] == "/?": #parameter page (location undisclosed)
+				encoded_string = handle_command(headers,clientsocket)
+				if encoded_string == None or encoded_string == "null":
+					senderror(clientsocket,"Command FNC returned None or Null, meaning, command not found");
+				else:
+					senddata(encoded_string,"Content-type: application/json",clientsocket);
+
+			elif headers["Path"][:5] == "/img/":#Possible Image detection
+				path = headers["Path"];
+				path = path.replace("%5C","\\");
+				path = path.replace("/img/",Configuration["Server"]["Storage"]);#clear paths && replace old origin with server official origin
+
+				if os.path.isfile(path):
+					senddata(readdata(path),"Content-type: image/png",clientsocket,stored = True)#if file has no ending *.file
+				else:
+					senderror(clientsocket,"Image error");# if booth do not match error response will be send
+					logging.error("Internal relay error var=" + path);
+
+			elif headers["Path"][:15] == "/API/UNKclients":
+				senddata(json.dumps(D_Temporary_Clients),"Content-type: application/json",clientsocket);
+			elif headers["Path"][:15] == "/API/error":
+				senddata(json.dumps(headers),"Content-type: application/json",clientsocket);
+			elif headers["Path"][:14] == "/API/SyncReset":
+				logging.info("Syncronization API trigger");
+				ResetSync();
+				senddata(json.dumps(["ok"]),"Content-type: application/json",clientsocket)#sendimage
+			elif headers["Path"][:4] == "/PSI":#Possible PSI REQUEST
+				senddata(gPSI,"Content-type: application/json",clientsocket)#sendimage
 			else:
-				senddata(encoded_string,"Content-type: application/json",clientsocket);
+				if "error" in headers["Path"]:#autodetect path for 'error' and send error image // image normally only requested by errorpage
+					senddata(readdata("error.jpg"),"Content-type: image/png",clientsocket)#send error image
+				else:
+					senderror(clientsocket,"Internal relay error" )#send error on error page error
+					logging.error("Internal relay error");
 
-		elif headers["Path"][:5] == "/img/":#Possible Image detection
-			path = headers["Path"];
-			path = path.replace("%5C","\\");
-			path = path.replace("/img/",Configuration["Server"]["Storage"]);#clear paths && replace old origin with server official origin
+		except Exception,e:
+			print "[!][CRITICAL] Unexpected error:", sys.exc_info()
+			logging.error(e);
 
-			if os.path.isfile(path):
-				senddata(readdata(path),"Content-type: image/png",clientsocket,stored = True)#if file has no ending *.file
-			else:
-				senderror(clientsocket,"Image error");# if booth do not match error response will be send
-				logging.error("Internal relay error var=" + path);
-
-		elif headers["Path"][:15] == "/API/UNKclients":
-			senddata(json.dumps(D_Temporary_Clients),"Content-type: application/json",clientsocket);
-		elif headers["Path"][:15] == "/API/error":
-			senddata(json.dumps(headers),"Content-type: application/json",clientsocket);
-		elif headers["Path"][:14] == "/API/SyncReset":
-			logging.info("Syncronization API trigger");
-			ResetSync();
-			senddata(json.dumps(["ok"]),"Content-type: application/json",clientsocket)#sendimage
-		elif headers["Path"][:4] == "/PSI":#Possible PSI REQUEST
-			senddata(gPSI,"Content-type: application/json",clientsocket)#sendimage
-		else:
-			if "error" in headers["Path"]:#autodetect path for 'error' and send error image // image normally only requested by errorpage
-				senddata(readdata("error.jpg"),"Content-type: image/png",clientsocket)#send error image
-			else:
-				senderror(clientsocket,"Internal relay error" )#send error on error page error
-				logging.error("Internal relay error");
 	print "[-][CON] Closed ", clientaddr, "\n"
 
 if __name__ == "__main__":

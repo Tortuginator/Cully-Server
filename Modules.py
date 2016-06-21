@@ -26,13 +26,14 @@ class FrameTimetable:
 		for i in content:
 			if not "start" in i or not "stop" in i:
 				if n==0:
+					if not "content" in i:break;
 					n = i["content"];
 					break;
-				else:
-					return [2,"WRONG CONTENT FORMAT"]
 			#Start
 			strStart = i["start"].split("/")
-			diffday = FrameTimetable.dayStrToID(strStart[0]) - d.weekday();
+			today = FrameTimetable.dayStrToID(strStart[0])
+			if today == -1:raise Exception('GetCurrentFrame => dayStrToID failed to determine the id of the day');
+			diffday = today - d.weekday();
 			dayStart = d + dt.timedelta((7 + diffday) % 7)
 			tmp_delta = dt.timedelta(minutes = int(strStart[1].split(":")[1]),hours = int(strStart[1].split(":")[0]));
 			absoluteStart = dayStart + tmp_delta
@@ -45,13 +46,13 @@ class FrameTimetable:
 			#Check
 			if (datetime.now() >= absoluteStart) and (datetime.now() <= absoluteStop):
 				#Found Active time
-				return [0,i["content"]];
+				return i["content"];
 
 		#OUT OF LOOP
 		if n!=0:
-			return [0,n]
+			return n
 		else:
-			return [1,"NO ACTIVE OR NORMAL CONTENT FOUND"]
+			raise Exception('GetCurrentFrame has found no active or standart content preset');
 
 	@staticmethod		
 	def dayStrToID(str):
@@ -79,8 +80,6 @@ class FrameTimer:
 		#Get Time Difference from START to NOW
 		delta = datetime.now() - StartTime
 		TimeDifference = int(delta.total_seconds())
-		print FrameTimer.GetCycleTime(Frames)
-		print TimeDifference
 		#Remove Passed Cycles
 		inCycleTime = TimeDifference%(FrameTimer.GetCycleTime(Frames))
 
@@ -139,10 +138,9 @@ class FrameContent:
 		try:
 			dPSI = gPSI
 		except Exception,e:
-			raise
 			logging.error(e);
 			dPSI = {"PSI":-1,"time":0}
-			print "FAILED to read and/or decode the PSI file/value"
+			print "[!][WARNING] FAILED to read and/or decode the PSI values"
 		return dPSI
 class validate:
 	@staticmethod
@@ -156,7 +154,7 @@ class validate:
 	@staticmethod
 	def content(c):
 		if ":" not in c:
-			return [1,"WRONG FORMAT"]
+			raise Exception('content() the content given does not fit the requirements',c);
 		c = c.split("|");
 		#Correct Split
 		t = list();
@@ -191,7 +189,7 @@ class psi:
 			if data == None: raise Exception("Data could not be decoded/recived")
 			return {"psi":data["channel"]["item"]["region"][1]["record"]["reading"][0]["@value"],"date":data["channel"]["item"]["region"][1]["record"]["@timestamp"]};
 		except Exception,e:
-			print "[!][PSI] a error occured:",str(e)
+			print "[!][WARNING][PSI] Unexpected error:", sys.exc_info()[0]
 			logging.error(e);
 			return {"psi":-1,"date":0}
 
@@ -219,7 +217,6 @@ class psi:
 						t_PSI = psi.Get()
 						logging.info(t_PSI);
 						psi.Write(t_PSI["psi"]);
-						print "[+][PSI] Updated @",t_PSI,"24-hrs"
 						print "[+][PSI] Leaving PRE routine"
 						break;
 
@@ -228,7 +225,7 @@ class psi:
 				tNow -= dt.timedelta(minutes = tNow.minute, seconds = tNow.second, microseconds =  tNow.microsecond)
 
 				tNow += dt.timedelta(hours = 0,minutes = 59,seconds = 30)#prevent that the timer will not be triggered in time and as result will not update (1hr cycle)
-				print "[+][PSI] retrieve @ ",tNow.strftime("%H:%M")
+				print "[+][PSI] retrieve @",tNow.strftime("%H:%M")
 				while dt.datetime.now() < tNow:
 					time.sleep(20);#Check every 20 seconds
 
@@ -253,8 +250,7 @@ class psi:
 				logging.info("New PSI value:" + pLast);
 		except Exception,e:
 			logging.error(e);
-			print e;
-			raise;
+			print "[!][CRITICAL][PSI] Unexpected error:", sys.exc_info()[0]
 
 	@staticmethod
 	def Write(psi):

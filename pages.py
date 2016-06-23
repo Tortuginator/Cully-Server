@@ -144,8 +144,11 @@ def PrintSlideshowImage(Address,Content,ID):
 		files = [f for f in listdir(StorageLocation) if isfile(join(StorageLocation, f))];
 
 		#Calculate Current item:
+		if not "date" in ItemStorage[ID]:
+			ItemStorage[ID]["date"] = datetime.now();
+
 		now = datetime.now()
-		delta = now - ItemStorage[ID]
+		delta = now - ItemStorage[ID]["date"]
 		TimeDifference = int(delta.total_seconds())
 		TimeUnits = TimeDifference%(SlideshowFrameTime*len(files))	#Remove Fully Passed frames
 		TimeUnits = TimeUnits - (TimeUnits%SlideshowFrameTime)		#Remove the current time in frame
@@ -154,7 +157,7 @@ def PrintSlideshowImage(Address,Content,ID):
 	else:
 		logging.error("Failed to load Slideshow Image var=" + StorageLocation);
 		return None
-	return '<body style = "font-family:' + font +'!important;background-color:black;margin:0px;padding:0px;"><img src="' + Address + 'slideshows/' + Content.split(";")[0] + '/' + files[TimeUnits] + '" style ="max-height: 100%;max-width: 100%;position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);"></src>';
+	return '<body style = "font-family:' + font +'!important;background-color:black;margin:0px;padding:0px;"><img src="' + Address + 'img/slideshows/' + Content.split(";")[0] + '/' + files[TimeUnits] + '" style ="max-height: 100%;max-width: 100%;position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);"></src>';
 
 def PrintFullIFrame(Address,Content,ID):
 	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;">\n<iframe src="' + Content + '" style="position:fixed; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%; border:none; margin:0; padding:0; overflow:hidden; z-index:999998;">Your browser doesn\'t support iframes</iframe>';

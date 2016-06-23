@@ -51,7 +51,7 @@ def decode_parameters(url):
 
 
 def handle_DisplayUpdate(parameter):
-	try:
+	#try:
 		global D_storage
 		#ALGORITHM COPYRIGHT FELIX FRIEDBERGER 2015/2016 DO NOT DISTRIBUTE FREELY
 		try:
@@ -93,9 +93,9 @@ def handle_DisplayUpdate(parameter):
 		DB_item = A_mysql_cur.fetchone()
 		rt = modules.FrameContent.GenerateFrame(DB_item[2],DB_item[3],DB_item[1],DB_item[0],Configuration,DB_Device["command"]);
 		return [1,rt]
-	except:
-		print "[!][CRITICAL] Unexpected error:", sys.exc_info()
-		return [4,"Unexpected error"]
+	#except:
+	#	print "[!][CRITICAL] Unexpected error:", sys.exc_info()
+	#	return [4,"Unexpected error"]
 
 def AppendClientDetails(ident,input = "",registered = 0):
 	if not ident in D_Temporary_Clients:
@@ -232,7 +232,7 @@ def handler(clientsocket, clientaddr):
 	print "[+][CON] Established " , clientaddr
 	logging.info('Therad Initialized ' + str(clientaddr))	
 	while 1:
-		try:
+		#try:
 			rec_data = clientsocket.recv(Configuration["Server"]["Buffer"])#Decode recived Content
 			if not rec_data:
 				break
@@ -277,14 +277,14 @@ def handler(clientsocket, clientaddr):
 					senderror(clientsocket,"Internal relay error" )#send error on error page error
 					logging.error("Internal relay error");
 
-		except Exception,e:
-			print "[!][CRITICAL] Unexpected error:", sys.exc_info()
-			logging.error(e);
+		#except Exception,e:
+		#	print "[!][CRITICAL] Unexpected error:", sys.exc_info()
+		#	logging.error(e);
 
 	print "[-][CON] Closed ", clientaddr, "\n"
 
-if __name__ == "__main__":
-
+def main():
+	global Configuration
 	try:
 		Fstr = open('config.json')
 	except Exception, e:
@@ -314,3 +314,6 @@ if __name__ == "__main__":
 		clientsocket, clientaddr = serversocket.accept()
 		thread.start_new_thread(handler, (clientsocket, clientaddr))
 	serversocket.close()
+
+if __name__ == "__main__":
+	main();

@@ -51,3 +51,8 @@ storage/1.jpg
 compile.py
 *.pyc
 *.txt
+config.json
+OLD2/test.py
+OLD2/Modules.py
+OLD2/pages.py
+OLD2/server.py

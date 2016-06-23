@@ -16,25 +16,7 @@ from os.path import isfile, join
 import logging
 import modules
 import sys
-#SETTINGS
-logging.basicConfig(filename='log' + datetime.datetime.now().strftime("%Y%m%d%H%M") + ".txt", level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-global D_storage
-D_storage = dict();
-global Configuration
-global D_Temporary_Clients
-D_Temporary_Clients = dict()
-global gPSI
-global D_time_reset;
-D_time_reset = datetime.datetime.now()
-global D_resync;
-D_resync = datetime.datetime.now()
-global D_stat_resync
-D_stat_resync = list();
-global D_resync_times
-D_resync_times = dict();
-
-#FUNCTIONS
 def decode_parameters(url):
 	if not "?" in url:return;
 	params = url.split("?")
@@ -51,7 +33,7 @@ def decode_parameters(url):
 
 
 def handle_DisplayUpdate(parameter):
-	#try:
+	try:
 		global D_storage
 		#ALGORITHM COPYRIGHT FELIX FRIEDBERGER 2015/2016 DO NOT DISTRIBUTE FREELY
 		try:
@@ -93,9 +75,10 @@ def handle_DisplayUpdate(parameter):
 		DB_item = A_mysql_cur.fetchone()
 		rt = modules.FrameContent.GenerateFrame(DB_item[2],DB_item[3],DB_item[1],DB_item[0],Configuration,DB_Device["command"]);
 		return [1,rt]
-	#except:
-	#	print "[!][CRITICAL] Unexpected error:", sys.exc_info()
-	#	return [4,"Unexpected error"]
+	except:
+		logging.exception("", exc_info=True)
+		print "[!][CRITICAL] Unexpected error:", sys.exc_info()
+		return [4,"Unexpected error"]
 
 def AppendClientDetails(ident,input = "",registered = 0):
 	if not ident in D_Temporary_Clients:
@@ -206,9 +189,14 @@ def senderror(cl,detail = None):
 	senddata(json.dumps(modules.FrameContent.InternalError(detail)),"Content-type: application/json",cl);
 	
 def readdata(file):
-	with open(file, "rb") as image_file:
-		return image_file.read();
-		
+	try:
+		with open(file, "rb") as image_file:
+			return image_file.read();
+	except Exception,e:
+		print "[!][CRITICAL] Failed to load file: " + file, sys.exc_info()
+		logging.exception("Failed to open file: " + file, exc_info=True)
+		return ""
+
 def decode_header(raw):
 	raw_headers = raw.split("\r\n");headers = dict();
 	if raw_headers[0][:3] == "OPT":
@@ -232,7 +220,7 @@ def handler(clientsocket, clientaddr):
 	print "[+][CON] Established " , clientaddr
 	logging.info('Therad Initialized ' + str(clientaddr))	
 	while 1:
-		#try:
+		try:
 			rec_data = clientsocket.recv(Configuration["Server"]["Buffer"])#Decode recived Content
 			if not rec_data:
 				break
@@ -277,43 +265,63 @@ def handler(clientsocket, clientaddr):
 					senderror(clientsocket,"Internal relay error" )#send error on error page error
 					logging.error("Internal relay error");
 
-		#except Exception,e:
-		#	print "[!][CRITICAL] Unexpected error:", sys.exc_info()
-		#	logging.error(e);
+		except Exception,e:
+			print "[!][CRITICAL] Unexpected error:", sys.exc_info()
+			logging.exception("", exc_info=True)
 
 	print "[-][CON] Closed ", clientaddr, "\n"
+def init():
+	logging.basicConfig(filename='log' + datetime.datetime.now().strftime("%Y%m%d%H%M") + ".txt", level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+	global D_storage
+	D_storage = dict();
+	global Configuration
+	global D_Temporary_Clients
+	D_Temporary_Clients = dict()
+	global gPSI
+	global D_time_reset;
+	D_time_reset = datetime.datetime.now()
+	global D_resync;
+	D_resync = datetime.datetime.now()
+	global D_stat_resync
+	D_stat_resync = list();
+	global D_resync_times
+	D_resync_times = dict();
 
 def main():
 	global Configuration
 	try:
 		Fstr = open('config.json')
 	except Exception, e:
-		logging.error(e);
+		logging.exception("", exc_info=True)
 		print "[!][Config] failed to open config.json"
 
 	try:
 		Configuration = json.load(Fstr);
 	except Exception, e:
-		logging.error(e);
+		logging.exception("", exc_info=True)
 		print "[!][Config] Failed to load JSON from file config.json"
+	try:
+		Configuration["ADDR"] = "http://" + str(Configuration["Server"]["PublicAddress"]) + ":" + str(Configuration["Server"]["PublicPort"]) + "/"#INIT CONFIG
+		if "TRUE" == Configuration["Server"]["Debug"]: Configuration["Server"]["Debug"] = True;
+		if "FALSE" == Configuration["Server"]["Debug"]: Configuration["Server"]["Debug"] = False;
+		if "TRUE" == Configuration["Server"]["Command"]: Configuration["Server"]["Command"] = True;
+		if "FALSE" == Configuration["Server"]["Command"]: Configuration["Server"]["Command"] = False;
 
-	Configuration["ADDR"] = "http://" + str(Configuration["Server"]["PublicAddress"]) + ":" + str(Configuration["Server"]["PublicPort"]) + "/"#INIT CONFIG
-	if "TRUE" == Configuration["Server"]["Debug"]: Configuration["Server"]["Debug"] = True;
-	if "FALSE" == Configuration["Server"]["Debug"]: Configuration["Server"]["Debug"] = False;
-	if "TRUE" == Configuration["Server"]["Command"]: Configuration["Server"]["Command"] = True;
-	if "FALSE" == Configuration["Server"]["Command"]: Configuration["Server"]["Command"] = False;
+		addr = (Configuration["Server"]["LocalAddress"], Configuration["Server"]["Port"])
 
-	addr = (Configuration["Server"]["LocalAddress"], Configuration["Server"]["Port"])
-
-	serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	serversocket.bind(addr)
-	serversocket.listen(2)
-	thread.start_new_thread(modules.psi.PSIAutoUpdate, ())
-	print "***|SERVER started on %s:%s with buffer size %s bytes|***" % (Configuration["Server"]["LocalAddress"],Configuration["Server"]["Port"],Configuration["Server"]["Buffer"]) 
-	while 1:
-		clientsocket, clientaddr = serversocket.accept()
-		thread.start_new_thread(handler, (clientsocket, clientaddr))
-	serversocket.close()
+		serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		serversocket.bind(addr)
+		serversocket.listen(2)
+		thread.start_new_thread(modules.psi.PSIAutoUpdate, ())
+		print "***|SERVER started on %s:%s with buffer size %s bytes|***" % (Configuration["Server"]["LocalAddress"],Configuration["Server"]["Port"],Configuration["Server"]["Buffer"]) 
+		while 1:
+			clientsocket, clientaddr = serversocket.accept()
+			thread.start_new_thread(handler, (clientsocket, clientaddr))
+		serversocket.close()
+	except Exception,e:
+		print "[!][CRITICAL] Failed to init"
+		logging.exception("", exc_info=True)
 
 if __name__ == "__main__":
+	init();
 	main();

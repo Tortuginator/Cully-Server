@@ -25,14 +25,15 @@ global ItemStorage
 ItemStorage = dict()
 
 def UpdateCalendar(link):
-	#"http://www.gess.sg/calendar/page_604.ics"
 	returncalendar = dict();returncalendar["Today"] = list();returncalendar["Tomorrow"] = list();returncalendar["day3"] = list();returncalendar["day4"] = list();returncalendar["day5"] = list();
 	try:
 		output = urllib2.urlopen(link,timeout=4).read()
 		finalcalendar = mod_calendar.calendar.StrToArr(output);
 	except Exception,e:
-		logging.error("failed to load calendar " + e)
+		print "[!][CRITICAL] Unexpected error:", sys.exc_info()
+		logging.exception("", exc_info=True)
 		return returncalendar
+		
 	morning = datetime.now()
 	morning -= timedelta(hours=morning.hour,minutes = morning.minute, seconds = morning.second, microseconds =  morning.microsecond)
 	for i in finalcalendar:
@@ -55,6 +56,7 @@ def UpdateCalendar(link):
 	returncalendar['day4'] = sorted(returncalendar['day4'], key=lambda k: k['DtStart'])
 	returncalendar['day5'] = sorted(returncalendar['day5'], key=lambda k: k['DtStart'])
 	return returncalendar;
+
 #Functions
 def PrintError(Address,Content,ID):
 	ErrorImage = "error.jpg";
@@ -150,7 +152,7 @@ def PrintSlideshowImage(Address,Content,ID):
 		now = datetime.now()
 		delta = now - ItemStorage[ID]["date"]
 		TimeDifference = int(delta.total_seconds())
-		TimeUnits = TimeDifference%(SlideshowFrameTime*len(files))	#Remove Fully Passed frames
+		TimeUnits = TimeDifference%(SlideshowFrameTime*len(files))	#Remove Fully Passed frame cycles
 		TimeUnits = TimeUnits - (TimeUnits%SlideshowFrameTime)		#Remove the current time in frame
 		TimeUnits = TimeUnits / SlideshowFrameTime					#Convert the full seconds to the Frame ID
 
@@ -174,17 +176,22 @@ def GetBackbone(innerHTML,debug):
 	else:
 		debugHTML = '<div id="debug_lower" style="display:none;"></div>\n<div id="debug_upper" style="display:none;"></div>\n<div id="special_frame" style=""></div>';
 		return "<html style=\"" + htmlCSS + "\">\n" + innerHTML + "\n</body>\n" + debugHTML + "\n" + typefaceCSS + "\n</html>";
+
 def GetPage(Type,Content,ID,Configuration):
-	debug = Configuration["Server"]["Debug"]
-	global lConfig
-	lConfig = Configuration
+	try:
+		debug = Configuration["Server"]["Debug"]
+		global lConfig
+		lConfig = Configuration
 
-	functions = {'0':PrintError,'2':PrintCostumHTML,'3':PrintCostumHTML,'4':PrintFullframeImage,'5':PrintCenteredImage,'6':PrintSlideshowImage,'7':PrintCalendar,'8':PrintFullIFrame,'9':PrintYoutube};#add your customized functions here 'ID',FuntionName || '0' is predefined error
-	Type = int(Type);
-	if not ID in ItemStorage:
-		ItemStorage[ID] = dict();
+		functions = {'0':PrintError,'2':PrintCostumHTML,'3':PrintCostumHTML,'4':PrintFullframeImage,'5':PrintCenteredImage,'6':PrintSlideshowImage,'7':PrintCalendar,'8':PrintFullIFrame,'9':PrintYoutube};#add your customized functions here 'ID',FuntionName || '0' is predefined error
+		Type = int(Type);
+		if not ID in ItemStorage:
+			ItemStorage[ID] = dict();
 
-	if str(Type) in functions:
-		return GetBackbone(functions[str(Type)](Configuration["ADDR"],Content,ID),debug);
-	else:
-		return GetBackbone(functions['0'](Configuration["ADDR"],Content,ID),debug)
+		if str(Type) in functions:
+			return GetBackbone(functions[str(Type)](Configuration["ADDR"],Content,ID),debug);
+		else:
+			return GetBackbone(functions['0'](Configuration["ADDR"],Content,ID),debug)
+	except Exception,e:
+		print "[!][CRITICAL] Unexpected error:", sys.exc_info()
+		logging.exception("", exc_info=True)

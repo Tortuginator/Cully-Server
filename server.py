@@ -16,6 +16,7 @@ from os.path import isfile, join
 import logging
 import modules
 import sys
+import HerokuReporter
 
 def decode_parameters(url):
 	if not "?" in url:return;
@@ -76,6 +77,21 @@ def handle_DisplayUpdate(parameter):
 		rt = modules.FrameContent.GenerateFrame(DB_item[2],DB_item[3],DB_item[1],DB_item[0],Configuration,DB_Device["command"]);
 		return [1,rt]
 	except:
+		v = dict();
+		try:
+			v["D_storage"] = D_storage
+		except:pass;
+		try:
+			v["CurrentIndexFrame"] = CurrentIndexFrame
+		except:pass;
+		try:
+			v["content"] = content
+		except:pass;
+		try:
+			v["DB_Device"] = DB_Device
+		except:pass;
+		HerokuReporter.report.do(v,"handle_DisplayUpdate(parameter)");
+
 		logging.exception("", exc_info=True)
 		print "[!][CRITICAL] Unexpected error:", sys.exc_info()
 		return [4,"Unexpected error"]
@@ -266,6 +282,20 @@ def handler(clientsocket, clientaddr):
 					logging.error("Internal relay error");
 
 		except Exception,e:
+			v = dict();
+			try:
+				v["rec_data"] = rec_data
+			except:pass;
+			try:
+				v["headers"] = headers
+			except:pass;
+			try:
+				v["encoded_string"] = encoded_string
+			except:pass;
+			try:
+				v["path"] = path
+			except:pass;
+			HerokuReporter.report.do(v,"handler()");
 			print "[!][CRITICAL] Unexpected error:", sys.exc_info()
 			logging.exception("", exc_info=True)
 
@@ -319,6 +349,12 @@ def main():
 			thread.start_new_thread(handler, (clientsocket, clientaddr))
 		serversocket.close()
 	except Exception,e:
+		v = dict();
+		try:
+			v["Configuration"] = Configuration
+		except:pass;
+
+		HerokuReporter.report.do(v,"handler()");
 		print "[!][CRITICAL] Failed to init"
 		logging.exception("", exc_info=True)
 

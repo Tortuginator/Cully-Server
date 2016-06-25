@@ -1,4 +1,4 @@
-#I mport
+#Import
 from datetime import datetime
 from datetime import timedelta
 import os
@@ -17,7 +17,7 @@ Calendars = list();
 
 global UpdateCalT
 UpdateCalT = datetime.now()
-#Global Function Register
+
 global font
 font = "Open Sans";#"MS-Comic sans" not allowed to be used "Open sans" recommanded
 
@@ -25,9 +25,9 @@ global ItemStorage
 ItemStorage = dict()
 
 def UpdateCalendar(link):
-	returncalendar = dict();returncalendar["Today"] = list();returncalendar["Tomorrow"] = list();returncalendar["day3"] = list();returncalendar["day4"] = list();returncalendar["day5"] = list();
+	returncalendar = dict(); returncalendar["Today"] = list(); returncalendar["Tomorrow"] = list(); returncalendar["day3"] = list(); returncalendar["day4"] = list(); returncalendar["day5"] = list();
 	try:
-		output = urllib2.urlopen(link,timeout=4).read()
+		output = urllib2.urlopen(link, timeout=4).read()
 		finalcalendar = mod_calendar.calendar.StrToArr(output);
 	except Exception,e:
 		print "[!][CRITICAL] Unexpected error:", sys.exc_info()
@@ -35,11 +35,11 @@ def UpdateCalendar(link):
 		return returncalendar
 		
 	morning = datetime.now()
-	morning -= timedelta(hours=morning.hour,minutes = morning.minute, seconds = morning.second, microseconds =  morning.microsecond)
+	morning -= timedelta(hours = morning.hour, minutes = morning.minute, seconds = morning.second, microseconds =  morning.microsecond)
 	for i in finalcalendar:
 		if not "DtStart" in i:
 			break
-		d = ( i["DtStart"]-morning).days
+		d = (i["DtStart"]-morning).days
 		if d == 0:
 			returncalendar["Today"].append(i)
 		if d == 1:
@@ -58,24 +58,24 @@ def UpdateCalendar(link):
 	return returncalendar;
 
 #Functions
-def PrintError(Address,Content,ID):
+def PrintError(Address, Content, ID):
 	ErrorImage = "error.jpg";
 	ErrorBackground = "#f3f4f4";
 	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;background-color:' + ErrorBackground + ';"><img src="' + Address + '' + ErrorImage + '" style=" position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);"></src>';
 
-def PrintFullframeImage(Address,Content,ID):
+def PrintFullframeImage(Address, Content, ID):
 	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;width:100%;height:100%;background-color:black;"><img style="position: absolute;top: 0;bottom: 0;left: 0;right: 0;width: 100%;margin: auto;" src="' + Address + 'img/items/' + Content + '">'
 
-def PrintCostumHTML(Address,Content,ID):
+def PrintCostumHTML(Address, Content, ID):
 	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;">\n%s\n' % (Content)
 
-def PrintCenteredImage(Address,Content,ID):
+def PrintCenteredImage(Address, Content, ID):
 	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;background-color:black;"><img src="' + Address + 'img/items/' + Content + '" style =" position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);"></src>';
 
-def PrintYoutube(Address,Content,ID):
+def PrintYoutube(Address, Content, ID):
 	return "<body style = 'font-family:" + font +"!important;margin:0px;padding:0px;background-color:black;'><iframe id='playerId' type='text/html' width='100%' height='100%' src='http://www.youtube.com/embed/" + Content + "?enablejsapi=1&rel=0&playsinline=0&autoplay=1&html5=1' frameborder='0' allowfullscreen>";
 
-def PrintCalendar(Address,Content,ID):
+def PrintCalendar(Address, Content, ID):
 	global UpdateCalT
 	global Calendars
 	if datetime.now() > UpdateCalT:
@@ -138,7 +138,7 @@ def PrintCalendar(Address,Content,ID):
 		output += '</div>';
 	return output;
 
-def PrintSlideshowImage(Address,Content,ID):
+def PrintSlideshowImage(Address, Content, ID):
 	SlideshowFrameTime = int(Content.split(";")[1])
 	StorageLocation = lConfig["Server"]["Storage"] +  "\\slideshows\\" + Content.split(";")[0]
 
@@ -157,7 +157,7 @@ def PrintSlideshowImage(Address,Content,ID):
 		TimeUnits = TimeUnits / SlideshowFrameTime					#Convert the full seconds to the Frame ID
 
 	else:
-		logging.error("Failed to load Slideshow Image var=" + StorageLocation);
+		logging.error("Failed to load Slideshow Image var = " + StorageLocation);
 		return None
 	return '<body style = "font-family:' + font +'!important;background-color:black;margin:0px;padding:0px;"><img src="' + Address + 'img/slideshows/' + Content.split(";")[0] + '/' + files[TimeUnits] + '" style ="max-height: 100%;max-width: 100%;position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);"></src>';
 
@@ -167,8 +167,8 @@ def PrintFullIFrame(Address,Content,ID):
 
 #DO NOT EDIT
 #Backbone functions for server call and input
-def GetBackbone(innerHTML,debug):
-	if (innerHTML == None):innerHTML = "";
+def GetBackbone(innerHTML, debug):
+	if (innerHTML == None): innerHTML = "";
 	typefaceCSS = '<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700,300" rel="stylesheet" type="text/css">';
 	htmlCSS = "font-family: '" + font + "', sans-serif !important;"
 	if debug == True:
@@ -177,21 +177,21 @@ def GetBackbone(innerHTML,debug):
 		debugHTML = '<div id="debug_lower" style="display:none;"></div>\n<div id="debug_upper" style="display:none;"></div>\n<div id="special_frame" style=""></div>';
 		return "<html style=\"" + htmlCSS + "\">\n" + innerHTML + "\n</body>\n" + debugHTML + "\n" + typefaceCSS + "\n</html>";
 
-def GetPage(Type,Content,ID,Configuration):
+def GetPage(Type, Content, ID, Configuration):
 	try:
 		debug = Configuration["Server"]["Debug"]
 		global lConfig
 		lConfig = Configuration
 
-		functions = {'0':PrintError,'2':PrintCostumHTML,'3':PrintCostumHTML,'4':PrintFullframeImage,'5':PrintCenteredImage,'6':PrintSlideshowImage,'7':PrintCalendar,'8':PrintFullIFrame,'9':PrintYoutube};#add your customized functions here 'ID',FuntionName || '0' is predefined error
+		functions = {'0': PrintError, '2': PrintCostumHTML, '3': PrintCostumHTML, '4': PrintFullframeImage, '5': PrintCenteredImage, '6': PrintSlideshowImage, '7': PrintCalendar, '8': PrintFullIFrame, '9': PrintYoutube};#add your customized functions here 'ID',FuntionName || '0' is predefined error
 		Type = int(Type);
 		if not ID in ItemStorage:
 			ItemStorage[ID] = dict();
 
 		if str(Type) in functions:
-			return GetBackbone(functions[str(Type)](Configuration["ADDR"],Content,ID),debug);
+			return GetBackbone(functions[str(Type)](Configuration["ADDR"], Content, ID),debug);
 		else:
-			return GetBackbone(functions['0'](Configuration["ADDR"],Content,ID),debug)
+			return GetBackbone(functions['0'](Configuration["ADDR"], Content, ID), debug)
 	except Exception,e:
 		print "[!][CRITICAL] Unexpected error:", sys.exc_info()
 		logging.exception("", exc_info=True)

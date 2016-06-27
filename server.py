@@ -64,7 +64,7 @@ def handle_DisplayUpdate(parameter):
 
 		A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (CurrentIndexFrame, ))
 		if not A_mysql_cur.rowcount == 1:
-			raise Exception('handle_DisplayUpdate() The item registered in the contentlist is non-existant', CurrentIndexFrame);
+			raise Exception('The item registered in the contentlist is non-existant', CurrentIndexFrame);
 
 		DB_item = A_mysql_cur.fetchone()
 		rt = modules.FrameContent.GenerateFrame(DB_item[2], DB_item[3], DB_item[1], DB_item[0], Configuration, DB_Device["command"]);
@@ -84,7 +84,7 @@ def handle_DisplayUpdate(parameter):
 			v["DB_Device"] = DB_Device
 		except: pass;
 
-		HerokuReporter.report.do(v, "handle_DisplayUpdate(parameter)");
+		HerokuReporter.report.do(v, "handle_DisplayUpdate(parameter)",sys.exc_info());
 		logging.exception("", exc_info=True)
 		print "[!][CRITICAL] Unexpected error:", sys.exc_info()
 		return [4, "Unexpected error"]
@@ -301,7 +301,8 @@ def handler(clientsocket, clientaddr):
 			try:
 				v["path"] = path
 			except: pass;
-			HerokuReporter.report.do(v, "handler()");
+
+			HerokuReporter.report.do(v, "handler()",sys.exc_info());
 			print "[!][CRITICAL] Unexpected error:", sys.exc_info()
 			logging.exception("", exc_info=True)
 
@@ -348,7 +349,7 @@ def main(confpath = None):
 			except Exception,e:
 				print "[!][Config] failed to open config.json from argument"
 				logging.exception("failed to open config.json from argument", exc_info=True)
-				
+
 	try:
 		Configuration = json.load(Fstr);
 	except Exception, e:
@@ -378,10 +379,10 @@ def main(confpath = None):
 		try:
 			v["Configuration"] = Configuration
 		except:pass;
-
-		HerokuReporter.report.do(v, "handler()");
+		print v
+		HerokuReporter.report.do(v, "handler()",sys.exc_info());
 		print "[!][CRITICAL] Failed to initialize"
-		logging.exception("", exc_info=True)
+		logging.exception("Failed to initialize", exc_info=True)
 
 if __name__ == "__main__":
 	init();

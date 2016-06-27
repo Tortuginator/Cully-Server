@@ -188,7 +188,7 @@ class psi:
 		except Exception, e:
 			print "[!][WARNING][PSI] Unexpected error:", sys.exc_info()[0]
 			logging.error(e);
-			return {"psi":-1, "date":0}
+			return {"psi":-1, "date":"N/A"}
 
 	@staticmethod
 	def PSIAutoUpdate():
@@ -242,9 +242,9 @@ class psi:
 									time.sleep(30)#2 Minutes loop (30) seconds
 					else:
 						pLast = pNow;
-				psi.Write(pLast);
-				print "[+][PSI] Updated @", pLast, "24-hrs"
-				logging.info("New PSI value:" + pLast);
+						psi.Write(pLast);
+						print "[+][PSI] Updated @", pLast, "24-hrs"
+						logging.info("Updated PSI: " + pLast);
 		except Exception, e:
 			logging.error(e);
 			print "[!][CRITICAL][PSI] Unexpected error:", sys.exc_info()[0]

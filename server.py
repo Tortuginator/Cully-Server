@@ -83,8 +83,8 @@ def handle_DisplayUpdate(parameter):
 		try:
 			v["DB_Device"] = DB_Device
 		except: pass;
-		HerokuReporter.report.do(v, "handle_DisplayUpdate(parameter)");
 
+		HerokuReporter.report.do(v, "handle_DisplayUpdate(parameter)");
 		logging.exception("", exc_info=True)
 		print "[!][CRITICAL] Unexpected error:", sys.exc_info()
 		return [4, "Unexpected error"]
@@ -234,8 +234,8 @@ def decode_header(raw):
 	return headers
 
 def handler(clientsocket, clientaddr):
-	print "[+][CON] Established " , clientaddr
-	logging.info('Therad Initialized ' + str(clientaddr))	
+	print "[+][CON] Established " + clientaddr
+	logging.info('Thread Initialized ' + str(clientaddr))	
 	while 1:
 		try:
 			rec_data = clientsocket.recv(Configuration["Server"]["Buffer"])#Decode recived Content
@@ -244,14 +244,14 @@ def handler(clientsocket, clientaddr):
 			headers = decode_header(rec_data)
 
 			if headers == None: #No decodable Headers eg. Telnet
-				senderror(clientsocket, "Failed to deocde the headers");
-				logging.error("Failed to deocde the headers");
+				senderror(clientsocket, "Failed to deocde headers");
+				logging.error("Failed to deocde headers");
 				break
 
 			if headers["Path"][:2] == "/?": #parameter page (location undisclosed)
 				encoded_string = handle_command(headers, clientsocket)
 				if encoded_string == None or encoded_string == "null":
-					senderror(clientsocket, "Command FNC returned None or Null, meaning, command not found");
+					senderror(clientsocket, "Command FNC returned None or Null => command not found");
 				else:
 					senddata(encoded_string, "Content-type: application/json", clientsocket);
 
@@ -263,7 +263,7 @@ def handler(clientsocket, clientaddr):
 				if os.path.isfile(path):
 					senddata(readdata(path), "Content-type: image/png", clientsocket, stored = True)#if file has no ending *.file
 				else:
-					senderror(clientsocket, "Image error");# if booth do not match error response will be send
+					senderror(clientsocket, "failed to load image");# if booth do not match error response will be send
 					logging.error("Internal relay error var=" + path);
 
 			elif headers["Path"][:15] == "/API/UNKclients":
@@ -273,7 +273,7 @@ def handler(clientsocket, clientaddr):
 				senddata(json.dumps(headers), "Content-type: application/json", clientsocket);
 
 			elif headers["Path"][:14] == "/API/SyncReset":
-				logging.info("Syncronization API trigger");
+				logging.info("Synchronization tiggered by API");
 				ResetSync()
 				senddata(json.dumps(["ok"]), "Content-type: application/json", clientsocket)#sendimage
 
@@ -285,7 +285,7 @@ def handler(clientsocket, clientaddr):
 					senddata(readdata("error.jpg"), "Content-type: image/png", clientsocket)#send error image
 				else:
 					senderror(clientsocket, "Internal relay error" )#send error on error page error
-					logging.error("Internal relay error");
+					logging.error("Internal relay error. Path/Command not found");
 
 		except Exception, e:
 			v = dict();
@@ -306,7 +306,7 @@ def handler(clientsocket, clientaddr):
 			logging.exception("", exc_info=True)
 
 	print "[-][CON] Closed ", clientaddr, "\n"
-
+	logging.info('Thread Closed ' + str(clientaddr))
 
 def init():
 	logging.basicConfig(filename='log' + datetime.datetime.now().strftime("%Y%m%d%H%M") + ".txt", level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -325,19 +325,36 @@ def init():
 	global D_resync_times
 	D_resync_times = dict();
 
-def main():
+def main(confpath = None):
 	global Configuration
 	try:
 		Fstr = open('config.json')
 	except Exception, e:
-		logging.exception("", exc_info=True)
+		logging.exception("failed to open config.json", exc_info=True)
 		print "[!][Config] failed to open config.json"
 
+		#Try variable
+		if confpath != None:
+			try:
+				Fstr = open(confpath)
+			except Exception,e:
+				print "[!][Config] failed to open config.json from var"
+				logging.exception("failed to open config.json from var", exc_info=True)
+
+		#Try startargument
+		if len(sys.argv) > 1:
+			try:
+				Fstr = open(sys.argv[1])
+			except Exception,e:
+				print "[!][Config] failed to open config.json from argument"
+				logging.exception("failed to open config.json from argument", exc_info=True)
+				
 	try:
 		Configuration = json.load(Fstr);
 	except Exception, e:
-		logging.exception("", exc_info=True)
+		logging.exception("failed to read config.json. JSON decode failed", exc_info=True)
 		print "[!][Config] Failed to load JSON from file config.json"
+
 	try:
 		Configuration["ADDR"] = "http://" + str(Configuration["Server"]["PublicAddress"]) + ":" + str(Configuration["Server"]["PublicPort"]) + "/"#INIT CONFIG
 		if "TRUE" == Configuration["Server"]["Debug"]: Configuration["Server"]["Debug"] = True;
@@ -363,7 +380,7 @@ def main():
 		except:pass;
 
 		HerokuReporter.report.do(v, "handler()");
-		print "[!][CRITICAL] Failed to init"
+		print "[!][CRITICAL] Failed to initialize"
 		logging.exception("", exc_info=True)
 
 if __name__ == "__main__":

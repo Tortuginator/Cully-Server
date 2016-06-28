@@ -167,7 +167,7 @@ def PrintFullIFrame(Address,Content,ID):
 #Backbone functions for server call and input
 def GetBackbone(innerHTML, debug, Configuration):
 	if (innerHTML == None): innerHTML = "";
-	typefaceCSS = '<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700,300" rel="stylesheet" type="text/css"><link rel="stylesheet" type="text/css" href="http://' + Configuration["Server"]["HTTPAddress"] + '/assets/breakingNews.css"/><script src="http://' + Configuration["Server"]["HTTPAddress"] + '/assets/jQuery.js"></script><script src="http://' + Configuration["Server"]["HTTPAddress"] + '/assets/newsfeed.js"></script>';
+	typefaceCSS = '<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700,300" rel="stylesheet" type="text/css">';
 	htmlCSS = "font-family: '" + font + "', sans-serif !important;"
 	if debug == True:
 		debugHTML = '<div style="background-color:black;color:white;position:fixed;top:50px;left:50px;padding:5px;text-align:center;font-size:25;">Developermode <p style="display:inline;color:green;">Active</p> | Connection <p style="display:inline;color:green;">Active</p></div>\n<div id="debug_lower" style="background-color:black;color:white;position:fixed;bottom:50px;right:50px;padding:5px;text-align:center;font-size:25;"></div>\n<div id="debug_upper" style="background-color:black;color:white;position:fixed;top:50px;right:50px;padding:5px;text-align:center;font-size:25;"></div>\n<div id="special_frame" style=""></div>';

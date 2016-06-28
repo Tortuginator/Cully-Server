@@ -1,7 +1,7 @@
 {
 	"Server": {
-		"Port": 443,
-		"PublicPort": 443,
+		"Port": 444,
+		"PublicPort": 444,
 		"LocalAddress": "172.18.99.220",
 		"PublicAddress": "172.18.99.220",
 		"HTTPAddress": "172.18.99.220",

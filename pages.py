@@ -94,7 +94,7 @@ def PrintCalendar(Address, Content, ID):
 				EndItem = ' - ' + i["DtEnd"].strftime("%H:%M");
 			else:
 				EndItem = '<p color="gray" style="display:inline;color:gray;"> - 00:00</p>';
-			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + i["DtStart"].strftime("%H:%M") + EndItem + '</div> ' + i["Summary"] + '</div>';
+			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + i["DtStart"].strftime("%H:%M") + EndItem + '</div> ' + i["Summary"] +  '</div>';
 		output += '</div>';
 
 	if len(ItemStorage[ID]["items"]["Tomorrow"]) != 0:
@@ -104,7 +104,7 @@ def PrintCalendar(Address, Content, ID):
 				EndItem = ' - ' + i["DtEnd"].strftime("%H:%M");
 			else:
 				EndItem = '<p color="gray" style="display:inline;color:gray;"> - 00:00</p>';
-			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + i["DtStart"].strftime("%H:%M") + EndItem + '</div> ' + i["Summary"] + '</div>';	
+			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + i["DtStart"].strftime("%H:%M") + EndItem + '</div> ' + i["Summary"] +  '</div>';	
 		output += '</div>';
 
 	if len(ItemStorage[ID]["items"]["day3"]) != 0:
@@ -114,7 +114,7 @@ def PrintCalendar(Address, Content, ID):
 				EndItem = ' - ' + i["DtEnd"].strftime("%H:%M");
 			else:
 				EndItem = '<p color="gray" style="display:inline;color:gray;"> - 00:00</p>';
-			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + i["DtStart"].strftime("%H:%M") + EndItem + '</div> ' + i["Summary"] + '</div>';	
+			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + i["DtStart"].strftime("%H:%M") + EndItem + '</div> ' + i["Summary"] +  '</div>';	
 		output += '</div>';
 
 	if len(ItemStorage[ID]["items"]["day4"]) != 0:
@@ -124,7 +124,7 @@ def PrintCalendar(Address, Content, ID):
 				EndItem = ' - ' + i["DtEnd"].strftime("%H:%M");
 			else:
 				EndItem = '<p color="gray" style="display:inline;color:gray;"> - 00:00</p>';
-			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + i["DtStart"].strftime("%H:%M") + EndItem + '</div> ' + i["Summary"] + '</div>';	
+			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + i["DtStart"].strftime("%H:%M") + EndItem + '</div> ' + i["Summary"] +  '</div>';	
 		output += '</div>';
 
 	if len(ItemStorage[ID]["items"]["day5"]) != 0:
@@ -134,7 +134,7 @@ def PrintCalendar(Address, Content, ID):
 				EndItem = ' - ' + i["DtEnd"].strftime("%H:%M");
 			else:
 				EndItem = '<p color="gray" style="display:inline;color:gray;"> - 00:00</p>';
-			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + i["DtStart"].strftime("%H:%M") + EndItem + '</div> ' + i["Summary"] + '</div>';	
+			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + i["DtStart"].strftime("%H:%M") + EndItem + '</div> ' + i["Summary"] +  '</div>';	
 		output += '</div>';
 	return output;
 
@@ -163,6 +163,10 @@ def PrintSlideshowImage(Address, Content, ID):
 
 def PrintFullIFrame(Address,Content,ID):
 	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;">\n<iframe src="' + Content + '" style="position:fixed; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%; border:none; margin:0; padding:0; overflow:hidden; z-index:999998;">Your browser doesn\'t support iframes</iframe>';
+
+def PrintRSS(Address,Content,ID):
+	return "";
+
 #DO NOT EDIT
 #Backbone functions for server call and input
 def GetBackbone(innerHTML, debug):
@@ -182,7 +186,7 @@ def GetPage(Type, Content, ID, Configuration):
 		global lConfig
 		lConfig = Configuration
 
-		functions = {'0': PrintError, '2': PrintCostumHTML, '3': PrintCostumHTML, '4': PrintFullframeImage, '5': PrintCenteredImage, '6': PrintSlideshowImage, '7': PrintCalendar, '8': PrintFullIFrame, '9': PrintYoutube};#add your customized functions here 'ID',FuntionName || '0' is predefined error
+		functions = {'0': PrintError, '2': PrintCostumHTML, '3': PrintCostumHTML, '4': PrintFullframeImage, '5': PrintCenteredImage, '6': PrintSlideshowImage, '7': PrintCalendar, '8': PrintFullIFrame, '9': PrintYoutube,'10':PrintRSS};#add your customized functions here 'ID',FuntionName || '0' is predefined error
 		Type = int(Type);
 		if not ID in ItemStorage:
 			ItemStorage[ID] = dict();

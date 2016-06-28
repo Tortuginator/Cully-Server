@@ -9,11 +9,38 @@ import json
 import time
 import logging
 import datetime as dt
+import mod_calendar
+import threading
 
 API_KEY = "781CF461BB6606AD28A78E343E0E41767E8B7FEDB4F45556";#ONLY for Internalusage
 global gPSI
 gPSI = {"PSI":-1, "time":"N/A"}
 
+class CalendarUpdater:
+	def __init__(self):
+		pass
+		self.data = dict();
+		self.updates = dict();
+
+	def GetCalendar(self,url):
+		if url in self.data:
+			if dt.datetime.now() > self.updates[url]:
+				self.updates[url] = dt.datetime.now() + dt.timedelta(minutes = 10)
+				threading.Thread(target=self.UpdateCalendar,args=(url,)).start()
+			return self.data[url];
+		else:
+			self.data[url] = "";
+			self.updates[url] = dt.datetime.now() + dt.timedelta(minutes = 10)
+			threading.Thread(target=self.UpdateCalendar,args=(url,)).start()
+			return self.data[url];
+
+	def UpdateCalendar(self,url):
+		try:
+			urlcontent = urllib2.urlopen(url, timeout=20).read()
+		except Exception,e:
+			print "[!][CALENDAR] Failed to download calendar data"
+			self.data[url] = "";
+		self.data[url] = mod_calendar.calendar.ReformStr(urlcontent)
 class FrameTimetable:
 	@staticmethod
 	def GetCurrentFrame(content):
@@ -30,7 +57,7 @@ class FrameTimetable:
 					n = i["content"];
 					break;
 			#Start
-			strStart = i["start"].split("/")
+			strStart = i["start"].split("/");
 			today = FrameTimetable.dayStrToID(strStart[0])
 			if today == -1:raise Exception('GetCurrentFrame => dayStrToID failed to determine the id of the day');
 			diffday = today - d.weekday();

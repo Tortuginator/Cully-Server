@@ -9,6 +9,7 @@ from os.path import isfile, join
 import logging
 import modules
 import sys
+import base64
 import HerokuReporter
 
 def decode_parameters(url):
@@ -269,6 +270,12 @@ def handler(clientsocket, clientaddr):
 			elif headers["Path"][:15] == "/API/UNKclients":
 				senddata(json.dumps(D_Temporary_Clients), "Content-type: application/json", clientsocket);
 
+			elif headers["Path"].startswith("/API/calendar/"):
+				param = headers["Path"].replace("/API/calendar/","")
+				if "?" in param:param = param.split("?")[0];
+				url = base64.b64decode(param);
+				senddata(D_cal.GetCalendar(url), "Content-type: application/json", clientsocket);
+
 			elif headers["Path"][:15] == "/API/error":
 				senddata(json.dumps(headers), "Content-type: application/json", clientsocket);
 
@@ -325,6 +332,9 @@ def init():
 	D_stat_resync = list();
 	global D_resync_times
 	D_resync_times = dict();
+
+	global D_cal 
+	D_cal = modules.CalendarUpdater();
 
 def main(confpath = None):
 	global Configuration

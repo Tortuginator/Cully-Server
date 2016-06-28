@@ -77,11 +77,11 @@ def handle_DisplayUpdate(parameter):
 
 		if "CurrentIndexFrame" in locals():
 			v["CurrentIndexFrame"] = CurrentIndexFrame
-			
+
 		if "content" in locals():
 			v["content"] = content
 
-		if "DB_Device" in locals()
+		if "DB_Device" in locals():
 			v["DB_Device"] = DB_Device
 
 		HerokuReporter.report.do(v, "handle_DisplayUpdate(parameter)",sys.exc_info());
@@ -376,7 +376,7 @@ def main(confpath = None):
 		serversocket.close()
 	except Exception, e:
 		v = dict();
-		if "Configuration" in global():
+		if "Configuration" in globals():
 			v["Configuration"] = Configuration
 		HerokuReporter.report.do(v, "handler()",sys.exc_info());
 		print "[!][CRITICAL] Failed to initialize"

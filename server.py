@@ -71,18 +71,18 @@ def handle_DisplayUpdate(parameter):
 		return [1, rt]
 	except:
 		v = dict();
-		try:
+		
+		if "D_storage" in locals():
 			v["D_storage"] = D_storage
-		except: pass;
-		try:
+
+		if "CurrentIndexFrame" in locals():
 			v["CurrentIndexFrame"] = CurrentIndexFrame
-		except: pass;
-		try:
+			
+		if "content" in locals():
 			v["content"] = content
-		except: pass;
-		try:
+
+		if "DB_Device" in locals()
 			v["DB_Device"] = DB_Device
-		except: pass;
 
 		HerokuReporter.report.do(v, "handle_DisplayUpdate(parameter)",sys.exc_info());
 		logging.exception("", exc_info=True)
@@ -289,18 +289,18 @@ def handler(clientsocket, clientaddr):
 
 		except Exception, e:
 			v = dict();
-			try:
+			if "rec_data" in locals():
 				v["rec_data"] = rec_data
-			except: pass;
-			try:
+
+			if "headers" in locals():
 				v["headers"] = headers
-			except: pass;
-			try:
+			
+			if "encoded_string" in locals():
 				v["encoded_string"] = encoded_string
-			except: pass;
-			try:
+
+			if "path" in locals():
 				v["path"] = path
-			except: pass;
+
 
 			HerokuReporter.report.do(v, "handler()",sys.exc_info());
 			print "[!][CRITICAL] Unexpected error:", sys.exc_info()
@@ -376,10 +376,8 @@ def main(confpath = None):
 		serversocket.close()
 	except Exception, e:
 		v = dict();
-		try:
+		if "Configuration" in global():
 			v["Configuration"] = Configuration
-		except:pass;
-		print v
 		HerokuReporter.report.do(v, "handler()",sys.exc_info());
 		print "[!][CRITICAL] Failed to initialize"
 		logging.exception("Failed to initialize", exc_info=True)

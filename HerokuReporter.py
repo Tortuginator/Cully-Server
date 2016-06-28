@@ -15,7 +15,7 @@ class report():
 		trace = traceback.format_exception(type_, value_, traceback_)
 		print "[!][Reporter] Preparing new report"
 		t = threading.Thread(target=report.Request,args=(token, trace, ref, data))
-		t.start();
+		#t.start();
 
 	@staticmethod
 	def Request(token, message, ref, variables):

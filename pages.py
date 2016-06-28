@@ -163,19 +163,18 @@ def PrintSlideshowImage(Address, Content, ID):
 
 def PrintFullIFrame(Address,Content,ID):
 	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;">\n<iframe src="' + Content + '" style="position:fixed; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%; border:none; margin:0; padding:0; overflow:hidden; z-index:999998;">Your browser doesn\'t support iframes</iframe>';
-
-
 #DO NOT EDIT
 #Backbone functions for server call and input
-def GetBackbone(innerHTML, debug):
+def GetBackbone(innerHTML, debug, Configuration):
 	if (innerHTML == None): innerHTML = "";
-	typefaceCSS = '<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700,300" rel="stylesheet" type="text/css">';
+	typefaceCSS = '<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700,300" rel="stylesheet" type="text/css"><link rel="stylesheet" type="text/css" href="http://' + Configuration["Server"]["HTTPAddress"] + '/assets/breakingNews.css"/><script src="http://' + Configuration["Server"]["HTTPAddress"] + '/assets/jQuery.js"></script><script src="http://' + Configuration["Server"]["HTTPAddress"] + '/assets/newsfeed.js"></script>';
 	htmlCSS = "font-family: '" + font + "', sans-serif !important;"
 	if debug == True:
 		debugHTML = '<div style="background-color:black;color:white;position:fixed;top:50px;left:50px;padding:5px;text-align:center;font-size:25;">Developermode <p style="display:inline;color:green;">Active</p> | Connection <p style="display:inline;color:green;">Active</p></div>\n<div id="debug_lower" style="background-color:black;color:white;position:fixed;bottom:50px;right:50px;padding:5px;text-align:center;font-size:25;"></div>\n<div id="debug_upper" style="background-color:black;color:white;position:fixed;top:50px;right:50px;padding:5px;text-align:center;font-size:25;"></div>\n<div id="special_frame" style=""></div>';
 	else:
 		debugHTML = '<div id="debug_lower" style="display:none;"></div>\n<div id="debug_upper" style="display:none;"></div>\n<div id="special_frame" style=""></div>';
-		return "<html style=\"" + htmlCSS + "\">\n" + innerHTML + "\n</body>\n" + debugHTML + "\n" + typefaceCSS + "\n</html>";
+	ticker = "<div id=\"bbcticker\" style='width: 100%;position:fixed;bottom:0px;left:0px;'></div>'";
+	return typefaceCSS + "\n" + "<html style=\"" + htmlCSS + "\">\n" + innerHTML + "\n</body>\n" + ticker + "\n" + debugHTML +  "\n</html>";
 
 def GetPage(Type, Content, ID, Configuration):
 	try:
@@ -189,9 +188,9 @@ def GetPage(Type, Content, ID, Configuration):
 			ItemStorage[ID] = dict();
 
 		if str(Type) in functions:
-			return GetBackbone(functions[str(Type)](Configuration["ADDR"], Content, ID),debug);
+			return GetBackbone(functions[str(Type)](Configuration["ADDR"], Content, ID),debug, Configuration);
 		else:
-			return GetBackbone(functions['0'](Configuration["ADDR"], Content, ID), debug)
+			return GetBackbone(functions['0'](Configuration["ADDR"], Content, ID), debug, Configuration)
 	except Exception,e:
 		print "[!][CRITICAL] Unexpected error:", sys.exc_info()
 		logging.exception("", exc_info=True)

@@ -2,8 +2,9 @@
 	"Server": {
 		"Port": 443,
 		"PublicPort": 443,
-		"LocalAddress": "172.18.99.194",
-		"PublicAddress": "172.18.99.194",
+		"LocalAddress": "172.18.99.220",
+		"PublicAddress": "172.18.99.220",
+		"HTTPAddress": "172.18.99.220",
 		"Buffer": 3072,
 		"Storage": "C:\\xampp\\htdocs\\php\\storage\\",
 		"TimeFormat": "%Y-%m-%d %H:%M:%S",

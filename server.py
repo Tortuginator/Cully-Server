@@ -234,7 +234,7 @@ def decode_header(raw):
 	return headers
 
 def handler(clientsocket, clientaddr):
-	print "[+][CON] Established " + clientaddr
+	print "[+][CON] Established " + str(clientaddr)
 	logging.info('Thread Initialized ' + str(clientaddr))	
 	while 1:
 		try:

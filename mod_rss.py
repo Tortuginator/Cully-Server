@@ -1,10 +1,8 @@
 import feedparser
 
 class rss:
-	def __init__(self):
-		self.data = dict();
-		
-	def read(self,url):
+	@staticmethod
+	def read(url):
 		try:
 				feed = feedparser.parse(url);
 		except Exception,e:
@@ -12,6 +10,5 @@ class rss:
 			return dict();
 		return feed
 
-	def Render(self,url):
 
 	

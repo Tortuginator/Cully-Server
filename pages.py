@@ -10,8 +10,9 @@ from os import listdir
 from operator import attrgetter
 from os.path import isfile, join
 import mod_calendar
+import mod_rss
 import urllib2
-
+import threading
 global Calendars
 Calendars = list();
 
@@ -20,7 +21,14 @@ UpdateCalT = datetime.now()
 
 global font
 font = "Open Sans";#"MS-Comic sans" not allowed to be used "Open sans" recommanded
-
+global ticker_storage
+global ticker_timer
+global ticker_interval
+global ticker_current
+ticker_storage = "loading"
+ticker_timer = datetime.now()
+ticker_interval = 6
+ticker_current = 0
 global ItemStorage
 ItemStorage = dict()
 
@@ -84,6 +92,8 @@ def PrintCalendar(Address, Content, ID):
 
 	if not ID in Calendars:
 		Calendars.append(ID);
+		ItemStorage[ID]["items"] = UpdateCalendar(Content);
+	if not "items" in ItemStorage[ID]:
 		ItemStorage[ID]["items"] = UpdateCalendar(Content);
 
 	output = '<body style="font-family:' + font +'!important;margin:0px;padding:0px;background-color:#008742;"><center><p style="margin:0px;margin-bottom:30px;margin-top:60px;width:100%;font-size:96px;color:white;font-weight:700;">Upcoming events</p></center>';
@@ -167,9 +177,11 @@ def PrintFullIFrame(Address,Content,ID):
 def PrintRSS(Address,Content,ID):
 	return "";
 
+
+
 #DO NOT EDIT
 #Backbone functions for server call and input
-def GetBackbone(innerHTML, debug):
+def GetBackbone(innerHTML, debug,ticker = True):
 	if (innerHTML == None): innerHTML = "";
 	typefaceCSS = '<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700,300" rel="stylesheet" type="text/css"><link rel="stylesheet" type="text/css" href="../assets/breakingNews.css">';
 	htmlCSS = "font-family: '" + font + "', sans-serif !important;"
@@ -177,7 +189,10 @@ def GetBackbone(innerHTML, debug):
 		debugHTML = '<div style="background-color:black;color:white;position:fixed;top:50px;left:50px;padding:5px;text-align:center;font-size:25;">Developermode <p style="display:inline;color:green;">Active</p> | Connection <p style="display:inline;color:green;">Active</p></div>\n<div id="debug_lower" style="background-color:black;color:white;position:fixed;bottom:50px;right:50px;padding:5px;text-align:center;font-size:25;"></div>\n<div id="debug_upper" style="background-color:black;color:white;position:fixed;top:50px;right:50px;padding:5px;text-align:center;font-size:25;"></div>\n<div id="special_frame" style=""></div>';
 	else:
 		debugHTML = '<div id="debug_lower" style="display:none;"></div>\n<div id="debug_upper" style="display:none;"></div>\n<div id="special_frame" style=""></div>';
-	ticker = "<div id=\"bbcticker\" style='width: 100%;position:fixed;bottom:0px;left:0px;'></div>'";
+	if ticker is True:
+		ticker = """<div id="bbcticker" style='width: 100%;position:fixed;bottom:0px;left:0px;'><div id="bn1" style="padding:0; margin:0; font-family:Open Sans; font-size:30px;" class="breakingNews bn-bordernone bn-red"><div class="bn-title" style="width: auto;"><h2 style="display: inline-block;">BBC News</h2><span></span></div><ul style=""><li style="display: block; width: 100%;"><a href="" target="_blank">""" + GetTicker() + """</a></li></ul></div></div>""";
+	else:
+		ticker = "";
 	return typefaceCSS + "\n" + "<html style=\"" + htmlCSS + "\">\n" + innerHTML + "\n</body>\n" + ticker + "\n" + debugHTML +  "\n</html>";
 
 def GetPage(Type, Content, ID, Configuration):
@@ -198,3 +213,31 @@ def GetPage(Type, Content, ID, Configuration):
 	except Exception,e:
 		print "[!][CRITICAL] Unexpected error:", sys.exc_info()
 		logging.exception("", exc_info=True)
+
+def GetTicker():
+	url = "http://feeds.bbci.co.uk/news/rss.xml?edition=int";
+	global ticker_timer
+	global ticker_current
+	global ticker_storage
+	global ticker_interval
+
+	if datetime.now() > ticker_timer:
+		ticker_timer = datetime.now() + timedelta(seconds = ticker_interval);
+		if ticker_storage == "loading":
+			t = threading.Thread(target=ThreadGetRSS,args=(url,)).start()
+			return "[LOADING FEED]"
+		if len(ticker_storage)-1 == ticker_current:
+			ticker_current = -1;
+			t = threading.Thread(target=ThreadGetRSS,args=(url,)).start()
+		ticker_current +=1;
+	return ticker_storage[ticker_current];
+
+def ThreadGetRSS(url):
+	print "[*][TICKER] Loading RSS feed"
+	global ticker_storage
+	data = mod_rss.rss.read(url);
+	ticker = list()
+	for i in data.entries:
+		if len(ticker) < 15:
+			ticker.append(i.title)
+	ticker_storage = ticker;

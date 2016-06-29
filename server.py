@@ -319,7 +319,7 @@ def handler(clientsocket, clientaddr):
 			print "[!][CRITICAL] Unexpected error:", sys.exc_info()
 			logging.exception("", exc_info=True)
 
-	print "[-][CON] Closed ", clientaddr, "\n"
+	print "[-][CON] Closed " + str(clientaddr)
 	logging.info('Thread Closed ' + str(clientaddr))
 
 def init():

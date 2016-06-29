@@ -23,7 +23,7 @@ def decode_parameters(url):
 	p = dict()
 	for a in sub_params:
 		if "=" in a:
-			b = a.split("="); p[b[0]] = b[1];
+			b = a.split("="); p[b[0]] = b[1]
 	return p
 
 
@@ -34,43 +34,43 @@ def handle_DisplayUpdate(parameter):
 		try:
 			A_mysql = MySQLdb.Connection(Configuration["MYSQL"]["Host"], Configuration["MYSQL"]["Username"], Configuration["MYSQL"]["Password"], Configuration["MYSQL"]["Database"])
 		except Exception, e:
-			logging.error(e);
-			raise Exception('handle_DisplayUpdate() Failed to connect to the MYSQL database', Configuration);
+			logging.error(e,exc_info = True)
+			raise Exception('handle_DisplayUpdate() Failed to connect to the MYSQL database', Configuration)
 
 		#CHECK if device exists
 		A_mysql_cur = A_mysql.cursor()
 		A_mysql_cur.execute("SELECT * FROM m_push WHERE device = %s", (parameter["d"], ))
 		if not A_mysql_cur.rowcount == 1:
-			return [2, "UNREGISTERED DEVICE"];
+			return [2, "UNREGISTERED DEVICE"]
 
-		DB_Device = A_mysql_cur.fetchone()#device, current,content, current_time, next_time, current_sub, push_command
-		DB_Device = modules.validate.pushToArry(DB_Device);
+		DB_Device = A_mysql_cur.fetchone()#device, current,ontent, current_time, next_time, current_sub, push_command
+		DB_Device = modules.validate.pushToArry(DB_Device)
 
 		#Setup Cycle Time
 		if not parameter["d"] in D_storage:
-			D_storage[parameter["d"]] = dict();
+			D_storage[parameter["d"]] = dict()
 			D_storage[parameter["d"]]["time"] = datetime.datetime.now()
-			D_storage[parameter["d"]]["content"] = "";
+			D_storage[parameter["d"]]["content"] = ""
 
 		#PREPARE DATA SOURCE
-		content = modules.FrameTimetable.GetCurrentFrame(DB_Device["content"]);
+		content = modules.FrameTimetable.GetCurrentFrame(DB_Device["content"])
 		content = modules.validate.content(content)
 		#Reset Start time if the device has new content;
 		if content != D_storage[parameter["d"]]["content"]:
-			D_storage[parameter["d"]]["time"] = datetime.datetime.now();
-			D_storage[parameter["d"]]["content"] = content;
+			D_storage[parameter["d"]]["time"] = datetime.datetime.now()
+			D_storage[parameter["d"]]["content"] = content
 
 		#Get Frame based on current Time
 		CurrentIndexFrame = modules.FrameTimer.GetFrameIndex(content, D_storage[parameter["d"]]["time"])
 
 		A_mysql_cur.execute("SELECT * FROM m_item WHERE ID = %s", (CurrentIndexFrame, ))
 		if not A_mysql_cur.rowcount == 1:
-			raise Exception('The item registered in the contentlist is non-existant', CurrentIndexFrame);
+			raise Exception('The item registered is non-existant', CurrentIndexFrame)
 
 		DB_item = A_mysql_cur.fetchone()
-		rt = modules.FrameContent.GenerateFrame(DB_item[2], DB_item[3], DB_item[1], DB_item[0], Configuration, DB_Device["command"]);
+		rt = modules.FrameContent.GenerateFrame(DB_item[2], DB_item[3], DB_item[1], DB_item[0], Configuration, DB_Device["command"])
 		return [1, rt]
-	except:
+	except Exception,e:
 		v = dict();
 		
 		if "D_storage" in locals():
@@ -85,32 +85,32 @@ def handle_DisplayUpdate(parameter):
 		if "DB_Device" in locals():
 			v["DB_Device"] = DB_Device
 
-		HerokuReporter.report.do(v, "handle_DisplayUpdate(parameter)",sys.exc_info());
-		logging.exception("", exc_info=True)
+		HerokuReporter.report.do(v, "handle_DisplayUpdate()",sys.exc_info())
+		logging.exception("DisplayUpdate error", exc_info=True)
 		print "[!][CRITICAL] Unexpected error:", sys.exc_info()
 		return [4, "Unexpected error"]
 
 def AppendClientDetails(ident, input = "", registered = 0):
 	if not ident in D_Temporary_Clients:
-		D_Temporary_Clients[ident] = dict();
+		D_Temporary_Clients[ident] = dict()
 
 	if registered != 0 and (registered is True or registered is False):
-		D_Temporary_Clients[ident]["registered"] = registered;
+		D_Temporary_Clients[ident]["registered"] = registered
 
 	if input != "":
-		tmp = input.split(",");
+		tmp = input.split(",")
 
 		for e, d in enumerate(tmp):
-			cce = tmp[int(e)].split(">>");
+			cce = tmp[int(e)].split(">>")
 
 			if (cce[0].replace(" ", "") == "session"):
 				if not "clients" in D_Temporary_Clients[ident]:
-					D_Temporary_Clients[ident]["clients"] = list();
+					D_Temporary_Clients[ident]["clients"] = list()
 
 				if not cce[1] in D_Temporary_Clients[ident]["clients"]:
 					D_Temporary_Clients[ident]["clients"].append(cce[1])
 			else:
-				D_Temporary_Clients[ident][cce[0].replace(" ", "")] = cce[1];
+				D_Temporary_Clients[ident][cce[0].replace(" ", "")] = cce[1]
 
 def handle_command(headers, soc):
 	global D_Temporary_Clients
@@ -118,34 +118,34 @@ def handle_command(headers, soc):
 	global D_stat_resync
 	global D_resync
 	global D_resync_times
-	local_resync = False;
+	local_resync = False
 	p = decode_parameters(headers["Path"]);
 	if ("d" in p) and ("c" in p):
 		if p["c"] == "GET": #GET Display
 			#Reset the Client list each minute
 			if D_time_reset <= datetime.datetime.now():
-				D_time_reset = datetime.datetime.now();
-				D_time_reset += datetime.timedelta(minutes = 0.95);
+				D_time_reset = datetime.datetime.now()
+				D_time_reset += datetime.timedelta(minutes = 0.95)
 				print "[*][API] Next Output Reset at " + D_time_reset.strftime("%Y-%m-%d %H:%M:%S")
-				D_Temporary_Clients = dict();
+				D_Temporary_Clients = dict()
 
 			if "x-config" in headers and "x-resolution" in headers:
 				AppendClientDetails(str(p["d"]), input = headers["x-config"] + ",resolution>>" + headers["x-resolution"])
 				if "session" in headers["x-config"]:
-					t_session = headers["x-config"].split("session>>")[1].split(",")[0];
-					t_interval = headers["x-config"].split("interval>>")[1].split(",")[0];
-					logging.info("API GET request for device: " + t_session);
+					t_session = headers["x-config"].split("session>>")[1].split(",")[0]
+					t_interval = headers["x-config"].split("interval>>")[1].split(",")[0]
+					logging.info("API GET request for device: " + t_session)
 					if str(p["d"]) in D_Temporary_Clients and t_session in D_stat_resync:
 
 						if "clients" in D_Temporary_Clients[str(p["d"])]:
-							local_resync = True;
+							local_resync = True
 							del D_stat_resync[D_stat_resync.index(t_session)]
-							print "[*][SYNC] Syncronizing #" + str(p["d"]);
+							print "[*][SYNC] Syncronizing #" + str(p["d"])
 
 			#Handle ReSYNC
 			if D_resync <= datetime.datetime.now():
-				logging.info("Automatic Syncronization Trigger");
-				ResetSync();
+				logging.info("Automatic Syncronization Trigger")
+				ResetSync()
 
 			#Calculate Display Update
 			t = handle_DisplayUpdate(p);
@@ -153,26 +153,26 @@ def handle_command(headers, soc):
 
 			if t[0] == 1:
 				if "x-config" in headers and "x-resolution" in headers and str(p["d"]) in D_Temporary_Clients:
-					AppendClientDetails(str(p["d"]), registered = True);
+					AppendClientDetails(str(p["d"]), registered = True)
 
 				if local_resync is True:
-					tmp_d = datetime.datetime.now();
+					tmp_d = datetime.datetime.now()
 					if not str(p["d"]) in D_resync_times:
-						D_resync_times[str(p["d"])] = (int(tmp_d.second) + int(t_interval)+ int(t_interval))*1000 + tmp_d.microsecond/1000;
-					t[1]["resync"] = D_resync_times[str(p["d"])];
+						D_resync_times[str(p["d"])] = (int(tmp_d.second) + int(t_interval) + int(t_interval)) * 1000 + tmp_d.microsecond / 1000
+					t[1]["resync"] = D_resync_times[str(p["d"])]
 
 				return json.dumps(t[1])
 
 			elif t[0] == 2:
 				if "x-config" in headers and "x-resolution" in headers and str(p["d"]) in D_Temporary_Clients:
-					AppendClientDetails(str(p["d"]), registered = False);
-				return json.dumps(modules.FrameContent.InternalVisibleError("The ID of this device is not setup/configured: " + p["d"]));
+					AppendClientDetails(str(p["d"]), registered = False)
+				return json.dumps(modules.FrameContent.InternalVisibleError("The ID of this device is not setup/configured: " + p["d"]))
 			
-			return json.dumps(modules.FrameContent.InternalError("Display Update function returned NONE-object"));
+			return json.dumps(modules.FrameContent.InternalError("Display Update function returned NONE-object"))
 		else: #UNKNOWN Command
-			return None;
+			return None
 	else:
-		return None;
+		return None
 		
 def ResetSync():
 	global D_Temporary_Clients
@@ -180,12 +180,12 @@ def ResetSync():
 	global D_stat_resync
 	global D_resync
 	global D_resync_times
-	D_resync = datetime.datetime.now();
-	D_resync += datetime.timedelta(minutes = 2.8);
+	D_resync = datetime.datetime.now()
+	D_resync += datetime.timedelta(minutes = 2.8)
 	print "[+][SYNC] Next Syncronization at " + D_resync.strftime("%Y-%m-%d %H:%M:%S")
-	logging.info("Syncronizing Clients");
-	D_stat_resync = list();
-	D_resync_times = dict();
+	logging.info("Syncronizing Clients")
+	D_stat_resync = list()
+	D_resync_times = dict()
 	for c in D_Temporary_Clients:
 		if D_Temporary_Clients[c]["clients"] > 1:
 			print "[+][SYNC] preparing for Syncronization"
@@ -204,12 +204,12 @@ def senddata(data, type, cl, stored = False):
 
 def senderror(cl, detail = None):
 	print "[!][WARNING] Error send:", detail
-	senddata(json.dumps(modules.FrameContent.InternalError(detail)), "Content-type: application/json", cl);
+	senddata(json.dumps(modules.FrameContent.InternalError(detail)), "Content-type: application/json", cl)
 	
 def readdata(file):
 	try:
 		with open(file, "rb") as image_file:
-			return image_file.read();
+			return image_file.read()
 	except Exception, e:
 		print "[!][CRITICAL] Failed to load file: " + file, sys.exc_info()
 		logging.exception("Failed to open file: " + file, exc_info=True)
@@ -218,20 +218,20 @@ def readdata(file):
 def decode_header(raw):
 	raw_headers = raw.split("\r\n");headers = dict();
 	if raw_headers[0][:3] == "OPT":
-		headers["Request"] = "OPT";
+		headers["Request"] = "OPT"
 	
 	else:
-		headers["Request"] = "GET";
+		headers["Request"] = "GET"
 
-	headers["Path"] = raw_headers[0].split(" ")[1];
-	headers["Version"] = raw_headers[0].split(" ")[2];
+	headers["Path"] = raw_headers[0].split(" ")[1]
+	headers["Version"] = raw_headers[0].split(" ")[2]
 
 	for head in raw_headers:
 		if ":" in head:
-			tmp = head.split(":");
-			headers[tmp[0]] = tmp[1];
+			tmp = head.split(":")
+			headers[tmp[0]] = tmp[1]
 		elif len(head) > 1:
-			headers["Content"] = head;
+			headers["Content"] = head
 	return headers
 
 def handler(clientsocket, clientaddr):
@@ -240,7 +240,7 @@ def handler(clientsocket, clientaddr):
 	while 1:
 		try:
 			try:
-				rec_data = clientsocket.recv(Configuration["Server"]["Buffer"])#Decode recived Content
+				rec_data = clientsocket.recv(Configuration["Server"]["Buffer"])#Decode received Content
 			except socket.error,e:
 				print "[!][CRITICAL] socket error"
 				break;
@@ -250,43 +250,43 @@ def handler(clientsocket, clientaddr):
 			headers = decode_header(rec_data)
 
 			if headers == None: #No decodable Headers eg. Telnet
-				senderror(clientsocket, "Failed to deocde headers");
-				logging.error("Failed to deocde headers");
+				senderror(clientsocket, "Failed to decode headers")
+				logging.error("Failed to decode headers")
 				break
 
 			if headers["Path"][:2] == "/?": #parameter page (location undisclosed)
 				encoded_string = handle_command(headers, clientsocket)
 				if encoded_string == None or encoded_string == "null":
-					senderror(clientsocket, "Command FNC returned None or Null => command not found");
+					senderror(clientsocket, "Command FNC returned None or Null => command not found")
 				else:
-					senddata(encoded_string, "Content-type: application/json", clientsocket);
+					senddata(encoded_string, "Content-type: application/json", clientsocket)
 
 			elif headers["Path"][:5] == "/img/":#Possible Image detection
-				path = headers["Path"];
-				path = path.replace("%5C", "\\");
-				path = path.replace("/img/", Configuration["Server"]["Storage"]);#clear paths && replace old origin with server official origin
+				path = headers["Path"]
+				path = path.replace("%5C", "\\")
+				path = path.replace("/img/", Configuration["Server"]["Storage"])#clear paths && replace old origin with server official origin
 
 				if os.path.isfile(path):
 					senddata(readdata(path), "Content-type: image/png", clientsocket, stored = True)#if file has no ending *.file
 				else:
-					senderror(clientsocket, "failed to load image");# if booth do not match error response will be send
-					logging.error("Internal relay error var=" + path);
+					senderror(clientsocket, "Failed to load image")# if booth do not match error response will be send
+					logging.error("Internal relay error var=" + path)
 
 			elif headers["Path"][:15] == "/API/UNKclients":
-				senddata(json.dumps(D_Temporary_Clients), "Content-type: application/json", clientsocket);
+				senddata(json.dumps(D_Temporary_Clients), "Content-type: application/json", clientsocket)
 
 			elif headers["Path"].startswith("/API/calendar/"):
 				param = headers["Path"].replace("/API/calendar/","")
-				if "?" in param:param = param.split("?")[0];
-				url = base64.b64decode(param);
-				print "[+][CALENDAR] Request Recived"
-				senddata(D_cal.GetCalendar(url), "Content-type: application/json", clientsocket);
+				if "?" in param:param = param.split("?")[0]
+				url = base64.b64decode(param)
+				print "[+][CALENDAR] Request Received"
+				senddata(D_cal.GetCalendar(url), "Content-type: application/json", clientsocket)
 
 			elif headers["Path"][:15] == "/API/error":
-				senddata(json.dumps(headers), "Content-type: application/json", clientsocket);
+				senddata(json.dumps(headers), "Content-type: application/json", clientsocket)
 
 			elif headers["Path"][:14] == "/API/SyncReset":
-				logging.info("Synchronization tiggered by API");
+				logging.info("Synchronization tiggered by API")
 				ResetSync()
 				senddata(json.dumps(["ok"]), "Content-type: application/json", clientsocket)#sendimage
 
@@ -298,7 +298,7 @@ def handler(clientsocket, clientaddr):
 					senddata(readdata("error.jpg"), "Content-type: image/png", clientsocket)#send error image
 				else:
 					senderror(clientsocket, "Internal relay error" )#send error on error page error
-					logging.error("Internal relay error. Path/Command not found");
+					logging.error("Internal relay error. Path/Command not found")
 
 		except Exception, e:
 			v = dict();
@@ -315,7 +315,7 @@ def handler(clientsocket, clientaddr):
 				v["path"] = path
 
 
-			HerokuReporter.report.do(v, "handler()",sys.exc_info());
+			HerokuReporter.report.do(v, "handler()",sys.exc_info())
 			print "[!][CRITICAL] Unexpected error:", sys.exc_info()
 			logging.exception("", exc_info=True)
 
@@ -335,12 +335,12 @@ def init():
 	global D_resync;
 	D_resync = datetime.datetime.now()
 	global D_stat_resync
-	D_stat_resync = list();
+	D_stat_resync = list()
 	global D_resync_times
-	D_resync_times = dict();
+	D_resync_times = dict()
 
 	global D_cal 
-	D_cal = modules.CalendarUpdater();
+	D_cal = modules.CalendarUpdater()
 
 def main(confpath = None):
 	global Configuration
@@ -350,14 +350,6 @@ def main(confpath = None):
 		logging.exception("failed to open config.json", exc_info=True)
 		print "[!][Config] failed to open config.json"
 
-		#Try variable
-		if confpath != None:
-			try:
-				Fstr = open(confpath)
-			except Exception,e:
-				print "[!][Config] failed to open config.json from var"
-				logging.exception("failed to open config.json from var", exc_info=True)
-
 		#Try startargument
 		if len(sys.argv) > 1:
 			try:
@@ -366,18 +358,26 @@ def main(confpath = None):
 				print "[!][Config] failed to open config.json from argument"
 				logging.exception("failed to open config.json from argument", exc_info=True)
 
+		#Try variable
+		if confpath != None:
+			try:
+				Fstr = open(confpath)
+			except Exception,e:
+				print "[!][Config] failed to open config.json from var"
+				logging.exception("failed to open config.json from var", exc_info=True)
+
 	try:
-		Configuration = json.load(Fstr);
+		Configuration = json.load(Fstr)
 	except Exception, e:
 		logging.exception("failed to read config.json. JSON decode failed", exc_info=True)
 		print "[!][Config] Failed to load JSON from file config.json"
 
 	try:
 		Configuration["ADDR"] = "http://" + str(Configuration["Server"]["PublicAddress"]) + ":" + str(Configuration["Server"]["PublicPort"]) + "/"#INIT CONFIG
-		if "TRUE" == Configuration["Server"]["Debug"]: Configuration["Server"]["Debug"] = True;
-		if "FALSE" == Configuration["Server"]["Debug"]: Configuration["Server"]["Debug"] = False;
-		if "TRUE" == Configuration["Server"]["Command"]: Configuration["Server"]["Command"] = True;
-		if "FALSE" == Configuration["Server"]["Command"]: Configuration["Server"]["Command"] = False;
+		if "TRUE" == Configuration["Server"]["Debug"]: 		Configuration["Server"]["Debug"] = True;
+		if "FALSE" == Configuration["Server"]["Debug"]: 	Configuration["Server"]["Debug"] = False;
+		if "TRUE" == Configuration["Server"]["Command"]: 	Configuration["Server"]["Command"] = True;
+		if "FALSE" == Configuration["Server"]["Command"]: 	Configuration["Server"]["Command"] = False;
 
 		addr = (Configuration["Server"]["LocalAddress"], Configuration["Server"]["Port"])
 
@@ -394,7 +394,7 @@ def main(confpath = None):
 		v = dict();
 		if "Configuration" in globals():
 			v["Configuration"] = Configuration
-		HerokuReporter.report.do(v, "handler()",sys.exc_info());
+		HerokuReporter.report.do(v, "handler()",sys.exc_info())
 		print "[!][CRITICAL] Failed to initialize"
 		logging.exception("Failed to initialize", exc_info=True)
 

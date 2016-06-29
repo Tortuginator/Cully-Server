@@ -11,6 +11,7 @@ import logging
 import datetime as dt
 import mod_calendar
 import threading
+import HerokuReporter
 
 API_KEY = "781CF461BB6606AD28A78E343E0E41767E8B7FEDB4F45556";#ONLY for Internalusage
 global gPSI
@@ -53,52 +54,52 @@ class FrameTimetable:
 			if not "start" in i or not "stop" in i:
 				if n==0:
 					if not "content" in i:break;
-					n = i["content"];
-					break;
+					n = i["content"]
+					break
 			#Start
-			strStart = i["start"].split("/");
+			strStart = i["start"].split("/")
 			today = FrameTimetable.dayStrToID(strStart[0])
 			if today == -1:raise Exception('GetCurrentFrame => dayStrToID failed to determine the id of the day');
-			diffday = today - d.weekday();
+			diffday = today - d.weekday()
 			dayStart = d + dt.timedelta((7 + diffday) % 7)
-			tmp_delta = dt.timedelta(minutes = int(strStart[1].split(":")[1]), hours = int(strStart[1].split(":")[0]));
+			tmp_delta = dt.timedelta(minutes = int(strStart[1].split(":")[1]), hours = int(strStart[1].split(":")[0]))
 			absoluteStart = dayStart + tmp_delta
 
 			#Stop
 			strStop = i["stop"];
-			tmp_delta = dt.timedelta(minutes = int(strStop.split(":")[1]), hours = int(strStop.split(":")[0]));
-			absoluteStop = d + tmp_delta;
+			tmp_delta = dt.timedelta(minutes = int(strStop.split(":")[1]), hours = int(strStop.split(":")[0]))
+			absoluteStop = d + tmp_delta
 
 			#Check
 			if (datetime.now() >= absoluteStart) and (datetime.now() <= absoluteStop):
 				#Found Active time
-				return i["content"];
+				return i["content"]
 
 		#OUT OF LOOP
 		if n!=0:
 			return n
 		else:
-			raise Exception('GetCurrentFrame has found no active or standart content preset');
+			raise Exception('GetCurrentFrame has found no active or standart content preset')
 
 	@staticmethod		
 	def dayStrToID(str):
 		if str == "Monday":
-			ID = 0;
+			ID = 0
 		elif str == "Tuesday":
-			ID = 1;
+			ID = 1
 		elif str == "Wednesday":
-			ID = 2;
+			ID = 2
 		elif str == "Thursday":
-			ID = 3;
+			ID = 3
 		elif str == "Friday":
-			ID = 4;
+			ID = 4
 		elif str == "Saturday":
-			ID = 5;
+			ID = 5
 		elif str == "Sunday":
-			ID = 6;
+			ID = 6
 		else:
-			return -1;
-		return ID;
+			return -1
+		return ID
 
 class FrameTimer:
 	@staticmethod
@@ -128,8 +129,8 @@ class FrameContent:
 	def GenerateFrame(Itype, Icontent, Iname, Iid, Configuration, Ext_Command):
 		dPSI = FrameContent.ReadPSI()
 		try:
-			psi_value = int(dPSI["PSI"]);
-			psi_time = str(dPSI["time"]);
+			psi_value = int(dPSI["PSI"])
+			psi_time = str(dPSI["time"])
 		except Exception, e:
 			psi_value = int(-1);
 			psi_time = "N/A"
@@ -142,13 +143,13 @@ class FrameContent:
 	@staticmethod
 	def InternalError(Detail = None):
 		if Detail == None:Detail = "Undefined";
-		logging.critical("Sending Internal Error - " + Detail);
+		logging.critical("Sending Internal Error - " + Detail)
 		return {"content":'<div style="position: absolute;top: 50%;left: 50%;width:300px;height:500px;transform: translate(-50%, -50%);border-radius:5px;background-color:red"><div style="margin: 0 auto;border-radius:50%;border:10px solid white;width:150px;height:150px;margin-top:15px;"><div style="background-color:white;height:20px;width:100px;margin: 0 auto;margin-top:65px;"></div></div><center style="color:white;"><h1 style="color:white;">Internal Error</h1></center></div>',"id":-1,"type":0,"name":"Error","debug-detail":Detail}
 
 	@staticmethod
 	def InternalVisibleError(Detail = None):
 		if Detail == None:Detail = "Undefined";
-		logging.critical("Sending Internal Error - " + Detail);
+		logging.critical("Sending Internal Error - " + Detail)
 		return {"content":'<div style="position: absolute;top: 50%;left: 50%;width:300px;height:500px;transform: translate(-50%, -50%);border-radius:5px;background-color:red"><div style="margin: 0 auto;border-radius:50%;border:10px solid white;width:150px;height:150px;margin-top:15px;"><div style="background-color:white;height:20px;width:100px;margin: 0 auto;margin-top:65px;"></div></div><center style="color:white;"><h1 style="color:white;">Internal Error</h1><p style="width:80%;margin:0 auto;color:white;">' + Detail + '</p></center></div>',"id":-1,"type":0,"name":"Error","debug-detail":Detail}
 
 	@staticmethod
@@ -160,7 +161,7 @@ class FrameContent:
 		try:
 			dPSI = gPSI
 		except Exception, e:
-			logging.error(e);
+			logging.error(e)
 			dPSI = {"PSI": -1, "time": 0}
 			print "[!][WARNING] FAILED to read and/or decode the PSI values"
 		return dPSI
@@ -178,14 +179,14 @@ class validate:
 	def content(c):
 		if ":" not in c: raise Exception('content() the content given does not fit the requirements: ":"', c);
 		if "|" not in c and len(c) >= 4:
-			c =  "|" + c + "|";
+			c =  "|" + c + "|"
 
 		#Correct Split
 		t = list();
 		for i in c.split("|"):
 			if ":" in i:
-				s = i.split(":");
-				if s[0] != "" and s[1] != "":t.append([s[0], s[1]]);
+				s = i.split(":")
+				if s[0] != "" and s[1] != "":t.append([s[0], s[1]])
 
 		#if only one item exists
 		if len(t) == 1: t.append(t[0]);
@@ -210,7 +211,7 @@ class psi:
 		try:
 			data = psi.GetDataAirQ();
 			if data == None: raise Exception("Data could not be decoded/recived")
-			return {"psi":data["channel"]["item"]["region"][1]["record"]["reading"][0]["@value"], "date":data["channel"]["item"]["region"][1]["record"]["@timestamp"]};
+			return {"psi":data["channel"]["item"]["region"][1]["record"]["reading"][0]["@value"], "date":data["channel"]["item"]["region"][1]["record"]["@timestamp"]}
 		except Exception, e:
 			print "[!][WARNING][PSI] Unexpected error:", sys.exc_info()[0]
 			logging.error(e);
@@ -257,11 +258,11 @@ class psi:
 					if pNow["psi"] == pLast:
 						if pNow["date"] == dLast:
 							while 1:
-								pTPY = psi.Get();
+								pTPY = psi.Get()
 								if pTPY["date"] != dLast:
-									dLast = pTPY["date"];
-									pLast = pTPY["psi"];
-									logging.info(pTPY);
+									dLast = pTPY["date"]
+									pLast = pTPY["psi"]
+									logging.info(pTPY)
 									break;#exit unlimited loop
 								else:
 									print "[+][PSI] Forcing update loop"
@@ -270,9 +271,10 @@ class psi:
 						pLast = pNow;
 						psi.Write(pLast);
 						print "[+][PSI] Updated @", pLast, "24-hrs"
-						logging.info("Updated PSI: " + pLast);
+						logging.info("Updated PSI: " + pLast)
 		except Exception, e:
 			logging.error(e);
+			HerokuReporter.report.do({}, "PSIAutoUpdate()",sys.exc_info())
 			print "[!][CRITICAL][PSI] Unexpected error:", sys.exc_info()[0]
 
 	@staticmethod

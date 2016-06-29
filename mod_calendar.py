@@ -4,7 +4,8 @@ from icalendar import Calendar
 from datetime import datetime,timedelta
 from dateutil import rrule
 import json
-
+import HerokuReporter
+import logging
 class calendar:
 	@staticmethod
 	def StrToArr(input,truedate = True):
@@ -37,46 +38,50 @@ class calendar:
 
 	@staticmethod
 	def ReformStr(input):
-		cal = Calendar.from_ical(input)
-		evtList = []
-		 
-		for i in cal.walk():
-			if i.name == 'VEVENT':
-				newEvt = { 'editable' : False, 'allDay' : False }
-				eventrule = i.get("rrule");
-				date = None;
-				until = None;
-				try:
-					if eventrule:
-						str_rule = '';
-						until = '';
-						for k, v in eventrule.items():
-							if k != "UNTIL":
-								str_rule = str_rule + k + '=' + str(v[0]) + ';'
-							else:
-								until = v
-						if until == None:
-							break
-						if (datetime.now()-timediff(hours = 4)) > until:
-							break
-						rule = rrule.rrulestr(str_rule[:-1],dtstart = datetime.strptime(i.get('dtstart').dt.isoformat(), '%Y-%m-%dT%H:%M:00+08:00'))
-						date = rule.after(datetime.now()-timedelta(hours = 4))#+3hrs prevents events to "disappear" from the calendar
+		try:
+			cal = Calendar.from_ical(input)
+			evtList = []
+			 
+			for i in cal.walk():
+				if i.name == 'VEVENT':
+					newEvt = { 'editable' : False, 'allDay' : False }
+					eventrule = i.get("rrule");
+					date = None;
+					until = None;
+					try:
+						if eventrule:
+							str_rule = '';
+							until = '';
+							for k, v in eventrule.items():
+								if k != "UNTIL":
+									str_rule = str_rule + k + '=' + str(v[0]) + ';'
+								else:
+									until = v
+							if until == None:
+								break
+							if (datetime.now()-timediff(hours = 4)) > until:
+								break
+							rule = rrule.rrulestr(str_rule[:-1],dtstart = datetime.strptime(i.get('dtstart').dt.isoformat(), '%Y-%m-%dT%H:%M:00+08:00'))
+							date = rule.after(datetime.now()-timedelta(hours = 4))#+3hrs prevents events to "disappear" from the calendar
 
-						#Save event
-						newEvt['title'] = i.get('summary')
-						newEvt['start'] = date.strftime("%Y-%m-%d %H:%M:%S+08:00")
-						if i.get('dtend') != None:
-							timediff = datetime.strptime(i.get('dtend').dt.isoformat(), '%Y-%m-%dT%H:%M:00+08:00')-datetime.strptime(i.get('dtstart').dt.isoformat(), '%Y-%m-%dT%H:%M:00+08:00')
-							newEvt['end'] = (date + timediff).strftime("%Y-%m-%d %H:%M:%S+08:00")
-					else:
-						newEvt['title'] = i.get('summary')
-						newEvt['start'] = i.get('dtstart').dt.isoformat()
-						if i.get('dtend'):
-							newEvt['end'] = i.get('dtend').dt.isoformat()
-					if i.get('location'):
-						newEvt['url'] = i.get('location')
-					evtList.append(newEvt)
-				except Exception,e:
-					pass
+							#Save event
+							newEvt['title'] = i.get('summary')
+							newEvt['start'] = date.strftime("%Y-%m-%d %H:%M:%S+08:00")
+							if i.get('dtend') != None:
+								timediff = datetime.strptime(i.get('dtend').dt.isoformat(), '%Y-%m-%dT%H:%M:00+08:00')-datetime.strptime(i.get('dtstart').dt.isoformat(), '%Y-%m-%dT%H:%M:00+08:00')
+								newEvt['end'] = (date + timediff).strftime("%Y-%m-%d %H:%M:%S+08:00")
+						else:
+							newEvt['title'] = i.get('summary')
+							newEvt['start'] = i.get('dtstart').dt.isoformat()
+							if i.get('dtend'):
+								newEvt['end'] = i.get('dtend').dt.isoformat()
+						if i.get('location'):
+							newEvt['url'] = i.get('location')
+						evtList.append(newEvt)
+					except Exception,e:
+						pass
 
-		return json.dumps(evtList)
+			return json.dumps(evtList)
+		except Exception,e:
+			logging.exception("Failed to convert Ical to normalcal",exc_info=True)
+			HerokuReporter.report.do({}, "ReformStr()",sys.exc_info());

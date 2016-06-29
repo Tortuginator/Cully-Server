@@ -45,6 +45,7 @@ class calendar:
 				newEvt = { 'editable' : False, 'allDay' : False }
 				eventrule = i.get("rrule");
 				date = None;
+				until = None;
 				try:
 					if eventrule:
 						str_rule = '';
@@ -54,9 +55,12 @@ class calendar:
 								str_rule = str_rule + k + '=' + str(v[0]) + ';'
 							else:
 								until = v
-
+						if until == None:
+							break
+						if (datetime.now()-timediff(hours = 4)) > until:
+							break
 						rule = rrule.rrulestr(str_rule[:-1],dtstart = datetime.strptime(i.get('dtstart').dt.isoformat(), '%Y-%m-%dT%H:%M:00+08:00'))
-						date = rule.after(datetime.now()-timedelta(hours = 3))#+3hrs prevents events to "disappear" from the calendar
+						date = rule.after(datetime.now()-timedelta(hours = 4))#+3hrs prevents events to "disappear" from the calendar
 
 						#Save event
 						newEvt['title'] = i.get('summary')

@@ -18,7 +18,6 @@ gPSI = {"PSI":-1, "time":"N/A"}
 
 class CalendarUpdater:
 	def __init__(self):
-		pass
 		self.data = dict();
 		self.updates = dict();
 
@@ -29,7 +28,7 @@ class CalendarUpdater:
 				threading.Thread(target=self.UpdateCalendar,args=(url,)).start()
 			return self.data[url];
 		else:
-			self.data[url] = "";
+			self.data[url] = json.dumps({});
 			self.updates[url] = dt.datetime.now() + dt.timedelta(minutes = 10)
 			threading.Thread(target=self.UpdateCalendar,args=(url,)).start()
 			return self.data[url];
@@ -39,7 +38,7 @@ class CalendarUpdater:
 			urlcontent = urllib2.urlopen(url, timeout=20).read()
 		except Exception,e:
 			print "[!][CALENDAR] Failed to download calendar data"
-			self.data[url] = "";
+			self.data[url] = json.dumps({});
 		self.data[url] = mod_calendar.calendar.ReformStr(urlcontent)
 class FrameTimetable:
 	@staticmethod

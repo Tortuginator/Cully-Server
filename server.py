@@ -239,7 +239,12 @@ def handler(clientsocket, clientaddr):
 	logging.info('Thread Initialized ' + str(clientaddr))	
 	while 1:
 		try:
-			rec_data = clientsocket.recv(Configuration["Server"]["Buffer"])#Decode recived Content
+			try:
+				rec_data = clientsocket.recv(Configuration["Server"]["Buffer"])#Decode recived Content
+			except socket.error,e:
+				print "[!][CRITICAL] socket error"
+				break;
+
 			if not rec_data:
 				break
 			headers = decode_header(rec_data)
@@ -274,6 +279,7 @@ def handler(clientsocket, clientaddr):
 				param = headers["Path"].replace("/API/calendar/","")
 				if "?" in param:param = param.split("?")[0];
 				url = base64.b64decode(param);
+				print "[+][CALENDAR] Request Recived"
 				senddata(D_cal.GetCalendar(url), "Content-type: application/json", clientsocket);
 
 			elif headers["Path"][:15] == "/API/error":

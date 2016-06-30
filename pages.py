@@ -47,7 +47,7 @@ def UpdateCalendar(link):
 	morning -= timedelta(hours = morning.hour, minutes = morning.minute, seconds = morning.second, microseconds =  morning.microsecond)
 	for i in finalcalendar:
 		if not "DtStart" in i:
-			break
+			continue;
 		d = (i["DtStart"]-morning).days
 		if d == 0:
 			returncalendar["Today"].append(i)
@@ -102,50 +102,60 @@ def PrintCalendar(Address, Content, ID):
 		output += '<div style="background-color:white;width:900px;padding-left:50px;padding-bottom:15px;margin: 0 auto;"><p style="color:#008742;margin-bottom:20px;font-size:40px;font-weight:700;font-family:open sans;text-transform:uppercase;padding-bottom:0px;margin-bottom:0px;margin-top:30px;">TODAY</p>';
 		for i in ItemStorage[ID]["items"]["Today"]:
 			if "DtEnd" in i:
-				EndItem = ' - ' + i["DtEnd"].strftime("%H:%M");
+				EndItem = i["DtStart"].strftime("%H:%M") + ' - ' + i["DtEnd"].strftime("%H:%M");
+			elif i["DtStart"].strftime("%H:%M") == "00:00" and "DtEnd" not in i:
+				EndItem = '<p color="gray" style="display:inline;color:gray;">----</p>All Day<p color="gray" style="display:inline;color:gray;">-----</p>';
 			else:
-				EndItem = '<p color="gray" style="display:inline;color:gray;"> - 00:00</p>';
-			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + i["DtStart"].strftime("%H:%M") + EndItem + '</div> ' + i["Summary"] +  '</div>';
+				EndItem = i["DtStart"].strftime("%H:%M") + '<p color="gray" style="display:inline;color:gray;"> - 00:00</p>';
+			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + EndItem + '</div> ' + i["Summary"] +  '</div>';
 		output += '</div>';
 
 	if len(ItemStorage[ID]["items"]["Tomorrow"]) != 0:
 		output +='<div style="background-color:white;width:900px;padding-left:50px;padding-bottom:15px;margin: 0 auto;"><p style="color:#008742;font-size:40px;font-weight:700;font-family:open sans;text-transform:uppercase;padding-bottom:0px;margin-bottom:0px;margin-top:30px;">' + (datetime.now() + timedelta(+1)).strftime('%A') + '</p>';
 		for i in ItemStorage[ID]["items"]["Tomorrow"]:
 			if "DtEnd" in i:
-				EndItem = ' - ' + i["DtEnd"].strftime("%H:%M");
+				EndItem = i["DtStart"].strftime("%H:%M") + ' - ' + i["DtEnd"].strftime("%H:%M");
+			elif i["DtStart"].strftime("%H:%M") == "00:00" and "DtEnd" not in i:
+				EndItem = '<p color="gray" style="display:inline;color:gray;">----</p>All Day<p color="gray" style="display:inline;color:gray;">-----</p>';
 			else:
-				EndItem = '<p color="gray" style="display:inline;color:gray;"> - 00:00</p>';
-			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + i["DtStart"].strftime("%H:%M") + EndItem + '</div> ' + i["Summary"] +  '</div>';	
+				EndItem = i["DtStart"].strftime("%H:%M") + '<p color="gray" style="display:inline;color:gray;"> - 00:00</p>';
+			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + EndItem + '</div> ' + i["Summary"] +  '</div>';	
 		output += '</div>';
 
 	if len(ItemStorage[ID]["items"]["day3"]) != 0:
 		output +='<div style="background-color:white;width:900px;padding-left:50px;padding-bottom:15px;margin: 0 auto;"><p style="color:#008742;font-size:40px;font-weight:700;font-family:open sans;text-transform:uppercase;padding-bottom:0px;margin-bottom:0px;margin-top:30px;">' + (datetime.now() + timedelta(+2)).strftime('%A') + '</p>';
 		for i in ItemStorage[ID]["items"]["day3"]:
 			if "DtEnd" in i:
-				EndItem = ' - ' + i["DtEnd"].strftime("%H:%M");
+				EndItem = i["DtStart"].strftime("%H:%M") + ' - ' + i["DtEnd"].strftime("%H:%M");
+			elif i["DtStart"].strftime("%H:%M") == "00:00" and "DtEnd" not in i:
+				EndItem = '<p color="gray" style="display:inline;color:gray;">----</p>All Day<p color="gray" style="display:inline;color:gray;">-----</p>';
 			else:
-				EndItem = '<p color="gray" style="display:inline;color:gray;"> - 00:00</p>';
-			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + i["DtStart"].strftime("%H:%M") + EndItem + '</div> ' + i["Summary"] +  '</div>';	
+				EndItem = i["DtStart"].strftime("%H:%M") + '<p color="gray" style="display:inline;color:gray;"> - 00:00</p>';
+			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + EndItem + '</div> ' + i["Summary"] +  '</div>';	
 		output += '</div>';
 
 	if len(ItemStorage[ID]["items"]["day4"]) != 0:
 		output +='<div style="background-color:white;width:900px;padding-left:50px;padding-bottom:15px;margin: 0 auto;"><p style="color:#008742;font-size:40px;font-weight:700;font-family:open sans;text-transform:uppercase;padding-bottom:0px;margin-bottom:0px;margin-top:30px;">' + (datetime.now() + timedelta(+3)).strftime('%A') + '</p>';
 		for i in ItemStorage[ID]["items"]["day4"]:
 			if "DtEnd" in i:
-				EndItem = ' - ' + i["DtEnd"].strftime("%H:%M");
+				EndItem = i["DtStart"].strftime("%H:%M") + ' - ' + i["DtEnd"].strftime("%H:%M");
+			elif i["DtStart"].strftime("%H:%M") == "00:00" and "DtEnd" not in i:
+				EndItem = '<p color="gray" style="display:inline;color:gray;">----</p>All Day<p color="gray" style="display:inline;color:gray;">-----</p>';
 			else:
-				EndItem = '<p color="gray" style="display:inline;color:gray;"> - 00:00</p>';
-			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + i["DtStart"].strftime("%H:%M") + EndItem + '</div> ' + i["Summary"] +  '</div>';	
+				EndItem = i["DtStart"].strftime("%H:%M") + '<p color="gray" style="display:inline;color:gray;"> - 00:00</p>';
+			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">'  + EndItem + '</div> ' + i["Summary"] +  '</div>';	
 		output += '</div>';
 
 	if len(ItemStorage[ID]["items"]["day5"]) != 0:
 		output +='<div style="background-color:white;width:900px;padding-left:50px;padding-bottom:15px;margin: 0 auto;"><p style="color:#008742;font-size:40px;font-weight:700;font-family:open sans;text-transform:uppercase;padding-bottom:0px;margin-bottom:0px;margin-top:30px;">' + (datetime.now() + timedelta(+4)).strftime('%A') + '</p>';
 		for i in ItemStorage[ID]["items"]["day5"]:
 			if "DtEnd" in i:
-				EndItem = ' - ' + i["DtEnd"].strftime("%H:%M");
+				EndItem = i["DtStart"].strftime("%H:%M") + ' - ' + i["DtEnd"].strftime("%H:%M");
+			elif i["DtStart"].strftime("%H:%M") == "00:00" and "DtEnd" not in i:
+				EndItem = '<p color="gray" style="display:inline;color:gray;">----</p>All Day<p color="gray" style="display:inline;color:gray;">-----</p>';
 			else:
-				EndItem = '<p color="gray" style="display:inline;color:gray;"> - 00:00</p>';
-			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + i["DtStart"].strftime("%H:%M") + EndItem + '</div> ' + i["Summary"] +  '</div>';	
+				EndItem = i["DtStart"].strftime("%H:%M") + '<p color="gray" style="display:inline;color:gray;"> - 00:00</p>';
+			output += '<div style="color:#008742;font-size:20px;font-weight:500;font-family:open sans!important;margin-top:5px;"><div style="background-color:gray;color:white;border-radius:3px;padding:1px 5px;display:inline-block;">' + EndItem + '</div> ' + i["Summary"] +  '</div>';	
 		output += '</div>';
 	return output;
 
@@ -270,15 +280,12 @@ def ThreadGetRSS(url):
 
 def GetRSS(url,ID):
 	global ItemStorage
-	print "[*]Loading RSS"
+	print "[*][RSS] Loading feed"
 	data = mod_rss.rss.read(url);
-	lastitm = datetime.now();
 	max = 15;
 	rtp = list();
 	for i in data.entries:
 		p = dict()
-		if datetime.fromtimestamp(time.mktime(i["published_parsed"]))+timedelta(minutes=5) > lastitm:continue;
-		lastitm = datetime.fromtimestamp(time.mktime(i["published_parsed"]))
 		if max<=0:break;max -=1;
 		imagehref = None;
 

@@ -20,9 +20,9 @@ class rss:
 	@staticmethod
 	def fromHTMLinformat(input):
 		parser = HTMLParser()
-		input = input.replace("<br>","NEWLINEmNEWLINE")
+		input = input.replace("<br />","NEWLINEmNEWLINE")
 		c = re.sub('<[^<]+?>', '', input)
-		c = c.replace("NEWLINEmNEWLINE","<br>")
+		c = c.replace("NEWLINEmNEWLINE","<br />")
 		c = parser.unescape(c)
 		return c
 

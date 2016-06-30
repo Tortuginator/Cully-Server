@@ -13,6 +13,7 @@ import mod_calendar
 import mod_rss
 import urllib2
 import threading
+import time
 global Calendars
 Calendars = list();
 
@@ -178,15 +179,49 @@ def PrintRoomCalendar(Address,Content,ID):
 	return '<body style = "font-family:Open Sans!important;margin:0px;padding:0px;background-color:white;"><!--CALENDARINIT--><div id="roomname"><p id="text">' + Content.split("|")[0] + '</p></div><div id="roomcal"></div><lnk id="b64ical" style="display:none;">' + Content.split("|")[1] + '</lnk>';
 
 def PrintRSS(Address,Content,ID):
-	return "";
+	max = 10;
+	if ID in ItemStorage:
+		if not "items" in ItemStorage[ID]:
+			ItemStorage[ID]["items"] = None;
+		if not "time" in ItemStorage[ID]:
+			ItemStorage[ID]["time"] = datetime.now()
 
+		if ItemStorage[ID]["time"] <= datetime.now():
+			ItemStorage[ID]["time"] = datetime.now() + timedelta(minutes = 5);
+			t = threading.Thread(target=GetRSS,args=(Content,ID)).start()
+	if ItemStorage[ID]["items"] is None:
+		return "";
+	rssdat = ItemStorage[ID]["items"]
+	output = '<body style = "font-family:' + font +'!important;background-color:#008742;margin:0px;padding:0px;">';
+	lastitm = datetime.now();
+	for i in rssdat.entries:
+		if datetime.fromtimestamp(time.mktime(i["published_parsed"]))+timedelta(minutes=5) > lastitm:continue;
+		lastitm = datetime.fromtimestamp(time.mktime(i["published_parsed"]))
+		if max<=0:break;max -=1;
+		output += '<div class="rssitem">'
+		imagehref = None;
+
+		for l in i["links"]:
+			if "type" in l and "image" in l["type"]:imagehref = l["href"];
+		innerimages = mod_rss.rss.HTMLimg(i["summary"]);
+		if innerimages:
+			imagehref = innerimages[0];
+		if imagehref:output +=	'<img class = "image" src="' + imagehref + '"/>';
+
+		output +='''<div class = "content">
+							<p class = "title" >''' + mod_rss.rss.fromHTML(i["title"]) + '''</p> <p class="date">''' + time.strftime('%d.%m.%Y',i["published_parsed"]) + '''</p>
+							<p class = "body" >''' + mod_rss.rss.fromHTML(i["summary"]) + '''</p>
+					</div>
+				</div>'''
+
+	return output;
 
 
 #DO NOT EDIT
 #Backbone functions for server call and input
 def GetBackbone(innerHTML, debug,ticker = True,type = -1):
 	if (innerHTML == None): innerHTML = "";
-	typefaceCSS = '<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700,300" rel="stylesheet" type="text/css"><link rel="stylesheet" type="text/css" href="../assets/breakingNews.css"><link rel="stylesheet" href="../assets/fullcalendar.min.css" /><link rel="stylesheet" href="../assets/calendar.css" />';
+	typefaceCSS = '<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700,300" rel="stylesheet" type="text/css"><link rel="stylesheet" type="text/css" href="../assets/breakingNews.css"><link rel="stylesheet" href="../assets/rssitems.css" /><link rel="stylesheet" href="../assets/fullcalendar.min.css" /><link rel="stylesheet" href="../assets/calendar.css" />';
 	htmlCSS = "font-family: '" + font + "', sans-serif !important;"
 	if debug == True:
 		debugHTML = '<div style="background-color:black;color:white;position:fixed;top:50px;left:50px;padding:5px;text-align:center;font-size:25;">Developermode <p style="display:inline;color:green;">Active</p> | Connection <p style="display:inline;color:green;">Active</p></div>\n<div id="debug_lower" style="background-color:black;color:white;position:fixed;bottom:50px;right:50px;padding:5px;text-align:center;font-size:25;"></div>\n<div id="debug_upper" style="background-color:black;color:white;position:fixed;top:50px;right:50px;padding:5px;text-align:center;font-size:25;"></div>\n<div id="special_frame" style=""></div>';
@@ -245,3 +280,9 @@ def ThreadGetRSS(url):
 		if len(ticker) < 15:
 			ticker.append(i.title)
 	ticker_storage = ticker;
+
+def GetRSS(url,ID):
+	global ItemStorage
+	print "[*]Loading RSS"
+	data = mod_rss.rss.read(url);
+	ItemStorage[ID]["items"] = data;

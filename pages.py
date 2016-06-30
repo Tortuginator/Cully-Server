@@ -189,28 +189,15 @@ def PrintRSS(Address,Content,ID):
 		if ItemStorage[ID]["time"] <= datetime.now():
 			ItemStorage[ID]["time"] = datetime.now() + timedelta(minutes = 5);
 			t = threading.Thread(target=GetRSS,args=(Content,ID)).start()
-	if ItemStorage[ID]["items"] is None:
-		return "";
-	rssdat = ItemStorage[ID]["items"]
+	if ItemStorage[ID]["items"] is None:return "";
+
 	output = '<body style = "font-family:' + font +'!important;background-color:#008742;margin:0px;padding:0px;">';
-	lastitm = datetime.now();
-	for i in rssdat.entries:
-		if datetime.fromtimestamp(time.mktime(i["published_parsed"]))+timedelta(minutes=5) > lastitm:continue;
-		lastitm = datetime.fromtimestamp(time.mktime(i["published_parsed"]))
-		if max<=0:break;max -=1;
+	for i in ItemStorage[ID]["items"]:
 		output += '<div class="rssitem">'
-		imagehref = None;
-
-		for l in i["links"]:
-			if "type" in l and "image" in l["type"]:imagehref = l["href"];
-		innerimages = mod_rss.rss.HTMLimg(i["summary"]);
-		if innerimages:
-			imagehref = innerimages[0];
-		if imagehref:output +=	'<img class = "image" src="' + imagehref + '"/>';
-
+		if i["image"]:output +=	'<img class = "image" src="' + i["image"] + '"/>';
 		output +='''<div class = "content">
-							<p class = "title" >''' + mod_rss.rss.fromHTML(i["title"]) + '''</p> <p class="date">''' + time.strftime('%d.%m.%Y',i["published_parsed"]) + '''</p>
-							<p class = "body" >''' + mod_rss.rss.fromHTML(i["summary"]) + '''</p>
+							<p class = "title" >''' + i["title"] + '''</p> <p class="date">''' + i["date"] + '''</p>
+							<p class = "body" >''' + i["summary"]+ '''</p>
 					</div>
 				</div>'''
 
@@ -285,4 +272,29 @@ def GetRSS(url,ID):
 	global ItemStorage
 	print "[*]Loading RSS"
 	data = mod_rss.rss.read(url);
-	ItemStorage[ID]["items"] = data;
+	lastitm = datetime.now();
+	max = 15;
+	rtp = list();
+	for i in data.entries:
+		p = dict()
+		if datetime.fromtimestamp(time.mktime(i["published_parsed"]))+timedelta(minutes=5) > lastitm:continue;
+		lastitm = datetime.fromtimestamp(time.mktime(i["published_parsed"]))
+		if max<=0:break;max -=1;
+		imagehref = None;
+
+		for l in i["links"]:
+			if "type" in l and "image" in l["type"]:imagehref = l["href"];
+		innerimages = mod_rss.rss.HTMLimg(i["summary"]);
+		if innerimages:
+			p["image"] = innerimages[0];
+		else:
+			if imagehref:
+				p["image"] = imagehref;
+			else:
+				p["image"] = None;
+		p["title"] = mod_rss.rss.fromHTML(i["title"])
+		p["summary"] = mod_rss.rss.fromHTMLinformat(i["summary"])
+		p["date"] = time.strftime('%d.%m.%Y',i["published_parsed"]) 
+
+		rtp.append(p);
+	ItemStorage[ID]["items"] = rtp;

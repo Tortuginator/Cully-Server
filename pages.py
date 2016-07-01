@@ -27,13 +27,18 @@ global ticker_storage
 global ticker_timer
 global ticker_interval
 global ticker_current
+global ticker_error
 ticker_storage = "loading"
 ticker_timer = datetime.now()
 ticker_interval = 6
 ticker_current = 0
+ticker_error = 0;
 global ItemStorage
 ItemStorage = dict()
-
+global rndf
+rndf = "0";
+global rndf_timer
+rndf_timer = datetime.now();
 def UpdateCalendar(link):
 	returncalendar = dict(); returncalendar["Today"] = list(); returncalendar["Tomorrow"] = list(); returncalendar["day3"] = list(); returncalendar["day4"] = list(); returncalendar["day5"] = list();
 	try:
@@ -202,7 +207,7 @@ def PrintRSS(Address,Content,ID):
 	max = 10;
 	if ID in ItemStorage:
 		if not "items" in ItemStorage[ID]:
-			ItemStorage[ID]["items"] = None;
+			ItemStorage[ID]["items"] = None
 		if not "time" in ItemStorage[ID]:
 			ItemStorage[ID]["time"] = datetime.now()
 
@@ -233,28 +238,34 @@ def GetBackbone(innerHTML, debug,ticker = True,type = -1):
 	if debug == True:
 		debugHTML = '<div style="background-color:black;color:white;position:fixed;top:50px;left:50px;padding:5px;text-align:center;font-size:25;">Developermode <p style="display:inline;color:green;">Active</p> | Connection <p style="display:inline;color:green;">Active</p></div>\n<div id="debug_lower" style="background-color:black;color:white;position:fixed;bottom:50px;right:50px;padding:5px;text-align:center;font-size:25;"></div>\n<div id="debug_upper" style="background-color:black;color:white;position:fixed;top:50px;right:50px;padding:5px;text-align:center;font-size:25;"></div>\n<div id="special_frame" style=""></div>';
 	else:
-		debugHTML = '<div id="debug_lower" style="display:none;"></div>\n<div id="debug_upper" style="display:none;"></div>\n<div id="special_frame" style=""></div>';
+		debugHTML = '<div id="debug_lower" style="display:none;"></div>\n<div id="debug_upper" style="display:none;"></div>\n<div id="special_frame" style=""></div>'
 	if ticker is True and type != 11:
 		ticker = """<div id="bbcticker" style='z-index:9999;width: 100%;position:fixed;bottom:0px;left:0px;'><div id="bn1" style="padding:0; margin:0; font-family:Open Sans; font-size:30px;" class="breakingNews bn-bordernone bn-red"><div class="bn-title" style="width: auto;"><h2 style="display: inline-block;">BBC News</h2><span></span></div><ul style=""><li style="display: block; width: 100%;"><a href="" target="_blank">""" + GetTicker() + """</a></li></ul></div></div>""";
 	else:
 		ticker = "";
-	return typefaceCSS + "\n" + "<html style=\"" + htmlCSS + "\">\n" + innerHTML + "\n</body>\n" + ticker + "\n" + debugHTML +  "\n</html>";
+	return typefaceCSS + "\n" + "<html style=\"" + htmlCSS + "\">\n" + innerHTML + "\n</body>\n" + ticker + "\n" + debugHTML +  "\n</html>"
 
 def GetPage(Type, Content, ID, Configuration):
 	try:
+		global rndf
+		global rndf_timer
+		if rndf_timer < datetime.now():
+			rndf_timer = datetime.now() + timedelta(minutes = 10);
+			rndf = str(int(rndf) + 1) 
+
 		debug = Configuration["Server"]["Debug"]
 		global lConfig
 		lConfig = Configuration
 
 		functions = {'0': PrintError, '2': PrintCostumHTML, '3': PrintCostumHTML, '4': PrintFullframeImage, '5': PrintCenteredImage, '6': PrintSlideshowImage, '7': PrintCalendar, '8': PrintFullIFrame, '9': PrintYoutube,'10':PrintRSS,'11':PrintRoomCalendar};#add your customized functions here 'ID',FuntionName || '0' is predefined error
-		Type = int(Type);
+		Type = int(Type)
 		if not ID in ItemStorage:
-			ItemStorage[ID] = dict();
+			ItemStorage[ID] = dict()
 
 		if str(Type) in functions:
-			return GetBackbone(functions[str(Type)](Configuration["ADDR"], Content, ID),debug, type = int(Type));
+			return GetBackbone(functions[str(Type)](Configuration["ADDR"], Content, ID),debug, type = int(Type)) + "<!--" + rndf + "-->"
 		else:
-			return GetBackbone(functions['0'](Configuration["ADDR"], Content, ID), debug, type = int(Type))
+			return GetBackbone(functions['0'](Configuration["ADDR"], Content, ID), debug, type = int(Type)) + "<!--" + rndf + "-->"
 	except Exception,e:
 		print "[!][CRITICAL] Unexpected error:", sys.exc_info()
 		logging.exception("", exc_info=True)
@@ -266,9 +277,9 @@ def GetTicker():
 	global ticker_current
 	global ticker_storage
 	global ticker_interval
-
+	global ticker_error
 	if datetime.now() > ticker_timer:
-		ticker_timer = datetime.now() + timedelta(seconds = ticker_interval);
+		ticker_timer = datetime.now() + timedelta(seconds = ticker_interval)
 		if ticker_storage == "loading":
 			t = threading.Thread(target=ThreadGetRSS,args=(url,)).start()
 			return "[LOADING FEED]"
@@ -276,7 +287,12 @@ def GetTicker():
 			ticker_current = -1;
 			t = threading.Thread(target=ThreadGetRSS,args=(url,)).start()
 		ticker_current +=1;
-	return ticker_storage[ticker_current];
+	try:
+		return ticker_storage[ticker_current];
+	except:
+		ticker_error +=1
+		if ticker_error < 5:t = threading.Thread(target=ThreadGetRSS,args=(url,)).start();
+		return ""
 
 def ThreadGetRSS(url):
 	print "[*][TICKER] Loading RSS feed"
@@ -306,12 +322,12 @@ def GetRSS(url,ID):
 			p["image"] = innerimages[0];
 		else:
 			if imagehref:
-				p["image"] = imagehref;
+				p["image"] = imagehref
 			else:
-				p["image"] = None;
+				p["image"] = None
 		p["title"] = mod_rss.rss.fromHTML(i["title"]).strip()
 		p["summary"] = mod_rss.rss.fromHTMLinformat(i["summary"]).strip()
 		p["date"] = time.strftime('%d.%m.%Y',i["published_parsed"]) 
 
 		rtp.append(p);
-	ItemStorage[ID]["items"] = rtp;
+	ItemStorage[ID]["items"] = rtp

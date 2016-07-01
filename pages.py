@@ -14,6 +14,7 @@ import mod_rss
 import urllib2
 import threading
 import time
+import base64
 global Calendars
 Calendars = list();
 
@@ -36,6 +37,7 @@ ItemStorage = dict()
 def UpdateCalendar(link):
 	returncalendar = dict(); returncalendar["Today"] = list(); returncalendar["Tomorrow"] = list(); returncalendar["day3"] = list(); returncalendar["day4"] = list(); returncalendar["day5"] = list();
 	try:
+		logging.info(link);
 		output = urllib2.urlopen(link, timeout=4).read()
 		finalcalendar = mod_calendar.calendar.StrToArr(output);
 	except Exception,e:
@@ -186,7 +188,12 @@ def PrintFullIFrame(Address,Content,ID):
 	return '<body style = "font-family:' + font +'!important;margin:0px;padding:0px;">\n<iframe src="' + Content + '" style="position:fixed; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%; border:none; margin:0; padding:0; overflow:hidden; z-index:999998;">Your browser doesn\'t support iframes</iframe>';
 
 def PrintRoomCalendar(Address,Content,ID):
-	return '<body style = "font-family:Open Sans!important;margin:0px;padding:0px;background-color:white;"><!--CALENDARINIT--><div id="roomname"><p id="text">' + Content.split("|")[0] + '</p></div><div id="roomcal"></div><lnk id="b64ical" style="display:none;">' + Content.split("|")[1] + '</lnk>';
+	global lConfig
+	if not "|" in Content:return "";
+	url = base64.b64encode(Content.split("|")[1])
+	base = "http://" + str(lConfig["Server"]["PublicAddress"]) + ":" + str(lConfig["Server"]["PublicPort"]) + "/API/calendar/";
+	url = base + url
+	return '<body style = "font-family:Open Sans!important;margin:0px;padding:0px;background-color:white;"><div id="roomname"><center><p id="text">' + Content.split("|")[0] + '</p></center></div><div id="roomcal"></div><lnk id="b64ical" style="display:none;">' + url + '</lnk>';
 
 def PrintRSS(Address,Content,ID):
 	max = 10;
@@ -299,8 +306,8 @@ def GetRSS(url,ID):
 				p["image"] = imagehref;
 			else:
 				p["image"] = None;
-		p["title"] = mod_rss.rss.fromHTML(i["title"])
-		p["summary"] = mod_rss.rss.fromHTMLinformat(i["summary"])
+		p["title"] = mod_rss.rss.fromHTML(i["title"]).strip()
+		p["summary"] = mod_rss.rss.fromHTMLinformat(i["summary"]).strip()
 		p["date"] = time.strftime('%d.%m.%Y',i["published_parsed"]) 
 
 		rtp.append(p);

@@ -36,6 +36,7 @@ class CalendarUpdater:
 
 	def UpdateCalendar(self,url):
 		try:
+			logging.info(url)
 			urlcontent = urllib2.urlopen(url, timeout=20).read()
 		except Exception,e:
 			print "[!][CALENDAR] Failed to download calendar data"

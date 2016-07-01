@@ -2,6 +2,7 @@ import traceback
 import sys
 import threading
 import requests
+import logging
 import json
 
 class report():

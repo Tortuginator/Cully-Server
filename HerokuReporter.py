@@ -27,7 +27,7 @@ class report():
 			innerdata["data"] = innerdata["data"].encode('ascii', 'ignore')
 			r = requests.post("https://errorreport.herokuapp.com/API/v1.0/" + token + "/report/new", data=innerdata)
 			print "[!][Reporter] Error report status:", (r.status_code, r.reason)
-			logging.info("[!][Reporter] Error report status: " + r.status_code + " >> " + r.reason)
+			logging.info("[!][Reporter] Error report status: " + str(r.status_code) + " >> " + str(r.reason))
 			try:
 				p = r.json();
 				print p["message"]

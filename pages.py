@@ -162,6 +162,8 @@ def PrintCalendar(Address, Content, ID):
 	return output;
 
 def PrintSlideshowImage(Address, Content, ID):
+	if not ";" in Content:
+		raise Exception("Missing time/content from slideshow : " + Content)
 	SlideshowFrameTime = int(Content.split(";")[1])
 	StorageLocation = lConfig["Server"]["Storage"] +  "\\slideshows\\" + Content.split(";")[0]
 
@@ -189,7 +191,8 @@ def PrintFullIFrame(Address,Content,ID):
 
 def PrintRoomCalendar(Address,Content,ID):
 	global lConfig
-	if not "|" in Content:return "";
+	if not "|" in Content:
+		raise Exception("Missing Ical/Room : " + Content)
 	url = base64.b64encode(Content.split("|")[1])
 	base = "http://" + str(lConfig["Server"]["PublicAddress"]) + ":" + str(lConfig["Server"]["PublicPort"]) + "/API/calendar/";
 	url = base + url

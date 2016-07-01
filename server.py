@@ -97,7 +97,7 @@ def AppendClientDetails(ident, input = "", registered = 0):
 	if registered != 0 and (registered is True or registered is False):
 		D_Temporary_Clients[ident]["registered"] = registered
 
-	if input != "":
+	if input != "" and "," in input:
 		tmp = input.split(",")
 
 		for e, d in enumerate(tmp):
@@ -193,6 +193,8 @@ def ResetSync():
 				D_stat_resync.append(i)
 
 def generatepacket(type, data, stored = False):
+	if data is None:
+		data = "";
 	if stored is True:
 		return 'HTTP/1.1 200 OK' + '\n' + 'Access-Control-Allow-Origin: *\n' + 'Cache-Control:max-age=31536000' + '\n' + 'Access-Control-Allow-Headers:x-config,x-resolution' + '\n' + 'Expires: 0' + '\n' + 'Content-length: ' + str(len(data)) + '\n'+ type+ '\n' + '\n' + data
 	

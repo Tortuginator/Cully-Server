@@ -58,6 +58,10 @@ class FrameTimetable:
 					n = i["content"]
 					break
 			#Start
+			if not "/" in i["start"]:
+				raise Exception('GetCurrentFrame failed to read time')
+			if not ":" in i["start"] and not ":" in i["stop"]:
+				raise Exception('GetCurrentFrame invalid time format')
 			strStart = i["start"].split("/")
 			today = FrameTimetable.dayStrToID(strStart[0])
 			if today == -1:raise Exception('GetCurrentFrame => dayStrToID failed to determine the id of the day');

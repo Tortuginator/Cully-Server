@@ -231,7 +231,7 @@ def PrintRSS(Address,Content,ID):
 
 #DO NOT EDIT
 #Backbone functions for server call and input
-def GetBackbone(innerHTML, debug,ticker = True,type = -1):
+def GetBackbone(innerHTML, debug,ticker = False,type = -1):
 	if (innerHTML == None): innerHTML = "";
 	typefaceCSS = '<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700,300" rel="stylesheet" type="text/css"><link rel="stylesheet" type="text/css" href="../assets/breakingNews.css"><link rel="stylesheet" href="../assets/rssitems.css" /><link rel="stylesheet" href="../assets/fullcalendar.min.css" /><link rel="stylesheet" href="../assets/calendar.css" />';
 	htmlCSS = "font-family: '" + font + "', sans-serif !important;"
@@ -245,7 +245,7 @@ def GetBackbone(innerHTML, debug,ticker = True,type = -1):
 		ticker = "";
 	return typefaceCSS + "\n" + "<html style=\"" + htmlCSS + "\">\n" + innerHTML + "\n</body>\n" + ticker + "\n" + debugHTML +  "\n</html>"
 
-def GetPage(Type, Content, ID, Configuration):
+def GetPage(Type, Content, ID, Configuration,ticker = False):
 	try:
 		global rndf
 		global rndf_timer
@@ -263,7 +263,7 @@ def GetPage(Type, Content, ID, Configuration):
 			ItemStorage[ID] = dict()
 
 		if str(Type) in functions:
-			return GetBackbone(functions[str(Type)](Configuration["ADDR"], Content, ID),debug, type = int(Type)) + "<!--" + rndf + "-->"
+			return GetBackbone(functions[str(Type)](Configuration["ADDR"], Content, ID),debug, type = int(Type),ticker = ticker) + "<!--" + rndf + "-->"
 		else:
 			return GetBackbone(functions['0'](Configuration["ADDR"], Content, ID), debug, type = int(Type)) + "<!--" + rndf + "-->"
 	except Exception,e:

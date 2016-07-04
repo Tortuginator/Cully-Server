@@ -78,11 +78,13 @@ class FrameTimetable:
 			#Check
 			if (datetime.now() >= absoluteStart) and (datetime.now() <= absoluteStop):
 				#Found Active time
-				return i["content"]
+				if "ticker" in i:
+					return [i["content"],i["ticker"]]
+				return [i["content"]]
 
 		#OUT OF LOOP
 		if n!=0:
-			return n
+			return [n]
 		else:
 			raise Exception('GetCurrentFrame has found no active or standart content preset')
 
@@ -131,7 +133,7 @@ class FrameTimer:
 
 class FrameContent:
 	@staticmethod
-	def GenerateFrame(Itype, Icontent, Iname, Iid, Configuration, Ext_Command):
+	def GenerateFrame(Itype, Icontent, Iname, Iid, Configuration, Ext_Command,ticker = False):
 		dPSI = FrameContent.ReadPSI()
 		try:
 			psi_value = int(dPSI["PSI"])
@@ -140,7 +142,7 @@ class FrameContent:
 			psi_value = int(-1);
 			psi_time = "N/A"
 
-		produced = {"content":FrameContent.HTMLframe(Itype, Icontent, Iid, Configuration), "id": Iid, "type": Itype, "name": Iname, "enabled": "1","ticker":1, "PSI":{"Int": psi_value, "time": psi_time}}
+		produced = {"content":FrameContent.HTMLframe(Itype, Icontent, Iid, Configuration,ticker = ticker), "id": Iid, "type": Itype, "name": Iname, "enabled": "1","ticker":1, "PSI":{"Int": psi_value, "time": psi_time}}
 		if Ext_Command != "" and Configuration["Server"]["Command"] == True and Ext_Command != "NULL":#decide if there is to be a command included
 			produced["command"] = Ext_Command
 		return produced
@@ -158,8 +160,8 @@ class FrameContent:
 		return {"content":'<div style="position: absolute;top: 50%;left: 50%;width:300px;height:500px;transform: translate(-50%, -50%);border-radius:5px;background-color:red"><div style="margin: 0 auto;border-radius:50%;border:10px solid white;width:150px;height:150px;margin-top:15px;"><div style="background-color:white;height:20px;width:100px;margin: 0 auto;margin-top:65px;"></div></div><center style="color:white;"><h1 style="color:white;">Internal Error</h1><p style="width:80%;margin:0 auto;color:white;">' + Detail + '</p></center></div>',"id":-1,"type":0,"name":"Error","debug-detail":Detail}
 
 	@staticmethod
-	def HTMLframe(Itype, Icontent, ID, Configuration):
-		return pages.GetPage(Itype, Icontent, ID, Configuration)
+	def HTMLframe(Itype, Icontent, ID, Configuration,ticker = False):
+		return pages.GetPage(Itype, Icontent, ID, Configuration,ticker = ticker)
 
 	@staticmethod
 	def ReadPSI():

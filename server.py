@@ -54,7 +54,14 @@ def handle_DisplayUpdate(parameter):
 
 		#PREPARE DATA SOURCE
 		content = modules.FrameTimetable.GetCurrentFrame(DB_Device["content"])
-		content = modules.validate.content(content)
+		ticker = False
+		if len(content) == 2:
+			ticker = content[1]
+			if int(ticker) == 1:
+				ticker = True
+			else:
+				ticker = False
+		content = modules.validate.content(content[0])
 		#Reset Start time if the device has new content;
 		if content != D_storage[parameter["d"]]["content"]:
 			D_storage[parameter["d"]]["time"] = datetime.datetime.now()
@@ -68,7 +75,7 @@ def handle_DisplayUpdate(parameter):
 			raise Exception('The item registered is non-existant', CurrentIndexFrame)
 
 		DB_item = A_mysql_cur.fetchone()
-		rt = modules.FrameContent.GenerateFrame(DB_item[2], DB_item[3], DB_item[1], DB_item[0], Configuration, DB_Device["command"])
+		rt = modules.FrameContent.GenerateFrame(DB_item[2], DB_item[3], DB_item[1], DB_item[0], Configuration, DB_Device["command"],ticker = ticker)
 		return [1, rt]
 	except Exception,e:
 		v = dict();

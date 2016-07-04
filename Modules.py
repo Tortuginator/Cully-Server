@@ -53,10 +53,10 @@ class FrameTimetable:
 		n = 0;
 		for i in content:
 			if not "start" in i or not "stop" in i:
-				if n==0:
-					if not "content" in i:break;
-					n = i["content"]
-					break
+				if n == 0:
+					if not "content" in i:continue;
+					n = i
+					continue
 			#Start
 			if not "/" in i["start"]:
 				raise Exception('GetCurrentFrame failed to read time')
@@ -84,7 +84,9 @@ class FrameTimetable:
 
 		#OUT OF LOOP
 		if n!=0:
-			return [n]
+			if "ticker" in n:
+				return [n["content"],n["ticker"]]
+			return [n["content"]]
 		else:
 			raise Exception('GetCurrentFrame has found no active or standart content preset')
 

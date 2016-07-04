@@ -288,7 +288,10 @@ def GetTicker():
 			t = threading.Thread(target=ThreadGetRSS,args=(url,)).start()
 		ticker_current +=1;
 	try:
-		return ticker_storage[ticker_current];
+		if ticker_current in ticker_storage:
+			return ticker_storage[ticker_current];
+		else:
+			return ""
 	except:
 		ticker_error +=1
 		if ticker_error < 5:t = threading.Thread(target=ThreadGetRSS,args=(url,)).start();

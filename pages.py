@@ -236,7 +236,7 @@ def GetBackbone(innerHTML, debug,ticker = False,type = -1):
 	typefaceCSS = '<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700,300" rel="stylesheet" type="text/css"><link rel="stylesheet" type="text/css" href="../assets/breakingNews.css"><link rel="stylesheet" href="../assets/rssitems.css" /><link rel="stylesheet" href="../assets/fullcalendar.min.css" /><link rel="stylesheet" href="../assets/calendar.css" />';
 	htmlCSS = "font-family: '" + font + "', sans-serif !important;"
 	if debug == True:
-		debugHTML = '<div style="background-color:black;color:white;position:fixed;top:50px;left:50px;padding:5px;text-align:center;font-size:25;">Developermode <p style="display:inline;color:green;">Active</p> | Connection <p style="display:inline;color:green;">Active</p></div>\n<div id="debug_lower" style="background-color:black;color:white;position:fixed;bottom:50px;right:50px;padding:5px;text-align:center;font-size:25;"></div>\n<div id="debug_upper" style="background-color:black;color:white;position:fixed;top:50px;right:50px;padding:5px;text-align:center;font-size:25;"></div>\n<div id="special_frame" style=""></div>';
+		debugHTML = '<div style="background-color:black;color:white;position:fixed;top:50px;left:50px;padding:5px;text-align:center;font-size:25;">Developer mode <p style="display:inline;color:green;">Active</p> | Connection <p style="display:inline;color:green;">Active</p></div>\n<div id="debug_lower" style="background-color:black;color:white;position:fixed;bottom:50px;right:50px;padding:5px;text-align:center;font-size:25;"></div>\n<div id="debug_upper" style="background-color:black;color:white;position:fixed;top:50px;right:50px;padding:5px;text-align:center;font-size:25;"></div>\n<div id="special_frame" style=""></div>';
 	else:
 		debugHTML = '<div id="debug_lower" style="display:none;"></div>\n<div id="debug_upper" style="display:none;"></div>\n<div id="special_frame" style=""></div>'
 	if ticker is True and type != 11:
@@ -288,10 +288,9 @@ def GetTicker():
 			t = threading.Thread(target=ThreadGetRSS,args=(url,)).start()
 		ticker_current +=1;
 	try:
-		if ticker_current in ticker_storage:
-			return ticker_storage[ticker_current];
-		else:
-			return ""
+		if ticker_current not in ticker_storage:
+			ticker_current = 0;
+		return ticker_storage[ticker_current];
 	except:
 		ticker_error +=1
 		if ticker_error < 5:t = threading.Thread(target=ThreadGetRSS,args=(url,)).start();

@@ -263,7 +263,10 @@ def GetPage(Type, Content, ID, Configuration,ticker = False):
 			ItemStorage[ID] = dict()
 
 		if str(Type) in functions:
-			return GetBackbone(functions[str(Type)](Configuration["ADDR"], Content, ID),debug, type = int(Type),ticker = ticker) + "<!--" + rndf + "-->"
+			if int(Type) == 9:#prevent random reload in youtube videos ID:9 - youtubevid
+				return GetBackbone(functions[str(Type)](Configuration["ADDR"], Content, ID),debug, type = int(Type),ticker = ticker)
+			else:
+				return GetBackbone(functions[str(Type)](Configuration["ADDR"], Content, ID),debug, type = int(Type),ticker = ticker) + "<!--" + rndf + "-->"
 		else:
 			return GetBackbone(functions['0'](Configuration["ADDR"], Content, ID), debug, type = int(Type)) + "<!--" + rndf + "-->"
 	except Exception,e:
@@ -287,14 +290,7 @@ def GetTicker():
 			ticker_current = -1;
 			t = threading.Thread(target=ThreadGetRSS,args=(url,)).start()
 		ticker_current +=1;
-	try:
-		if ticker_current not in ticker_storage:
-			ticker_current = 0;
-		return ticker_storage[ticker_current];
-	except:
-		ticker_error +=1
-		if ticker_error < 5:t = threading.Thread(target=ThreadGetRSS,args=(url,)).start();
-		return ""
+	return ticker_storage[ticker_current];
 
 def ThreadGetRSS(url):
 	print "[*][TICKER] Loading RSS feed"

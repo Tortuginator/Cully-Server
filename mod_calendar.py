@@ -39,6 +39,8 @@ class calendar:
 	@staticmethod
 	def ReformStr(input):
 		try:
+			if input is None:return json.dumps([])
+			if len(input) == 0:return json.dumps([])
 			cal = Calendar.from_ical(input)
 			evtList = []
 			 

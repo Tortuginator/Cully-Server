@@ -287,9 +287,9 @@ def handler(clientsocket, clientaddr):
 			elif headers["Path"].startswith("/API/calendar/"):
 				param = headers["Path"].replace("/API/calendar/","")
 				if "?" in param:param = param.split("?")[0]
-				url = base64.b64decode(param)
 				print "[+][CALENDAR] Request Received"
-				senddata(D_cal.GetCalendar(url), "Content-type: application/json", clientsocket)
+				deco = base64.b64decode(param)
+				senddata(D_cal.GetCalendar(deco), "Content-type: application/json", clientsocket)
 
 			elif headers["Path"][:15] == "/API/error":
 				senddata(json.dumps(headers), "Content-type: application/json", clientsocket)
@@ -308,6 +308,7 @@ def handler(clientsocket, clientaddr):
 				else:
 					senderror(clientsocket, "Internal relay error" )#send error on error page error
 					logging.error("Internal relay error. Path/Command not found")
+					print headers["Path"]
 
 		except Exception, e:
 			v = dict();
@@ -326,7 +327,7 @@ def handler(clientsocket, clientaddr):
 
 			HerokuReporter.report.do(v, "handler()",sys.exc_info())
 			print "[!][CRITICAL] Unexpected error:", sys.exc_info()
-			logging.exception("", exc_info=True)
+			logging.exception("Unexpected error", exc_info=True)
 
 	print "[-][CON] Closed " + str(clientaddr)
 	logging.info('Thread Closed ' + str(clientaddr))

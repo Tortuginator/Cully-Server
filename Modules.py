@@ -80,13 +80,13 @@ class FrameTimetable:
 				#Found Active time
 				if "ticker" in i:
 					return [i["content"],i["ticker"]]
-				return [i["content"]]
+				return [i["content"],0]
 
 		#OUT OF LOOP
 		if n!=0:
 			if "ticker" in n:
 				return [n["content"],n["ticker"]]
-			return [n["content"]]
+			return [n["content"],0]
 		else:
 			raise Exception('GetCurrentFrame has found no active or standart content preset')
 

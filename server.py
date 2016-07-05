@@ -54,13 +54,11 @@ def handle_DisplayUpdate(parameter):
 
 		#PREPARE DATA SOURCE
 		content = modules.FrameTimetable.GetCurrentFrame(DB_Device["content"])
-		ticker = False
-		if len(content) == 2:
-			ticker = content[1]
-			if int(ticker) == 1:
-				ticker = True
-			else:
-				ticker = False
+		ticker = content[1]
+		if int(ticker) == 1:
+			ticker = True
+		else:
+			ticker = False
 		content = modules.validate.content(content[0])
 		#Reset Start time if the device has new content;
 		if content != D_storage[parameter["d"]]["content"]:

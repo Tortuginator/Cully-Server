@@ -270,8 +270,11 @@ def GetPage(Type, Content, ID, Configuration,ticker = False):
 		else:
 			return GetBackbone(functions['0'](Configuration["ADDR"], Content, ID), debug, type = int(Type)) + "<!--" + rndf + "-->"
 	except Exception,e:
-		print "[!][CRITICAL] Unexpected error:", sys.exc_info()
-		logging.exception("", exc_info=True)
+		try:
+			print "[!][CRITICAL] Unexpected error:", sys.exc_info()
+			logging.exception("", exc_info=True)
+		except Exception,p:
+			pass
 
 def GetTicker():
 	url = "http://feeds.bbci.co.uk/news/rss.xml?edition=int";

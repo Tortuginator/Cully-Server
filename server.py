@@ -131,7 +131,6 @@ def handle_command(headers, soc):
 			if D_time_reset <= datetime.datetime.now():
 				D_time_reset = datetime.datetime.now()
 				D_time_reset += datetime.timedelta(minutes = 0.95)
-				print "[*][API] Next Output Reset at " + D_time_reset.strftime("%Y-%m-%d %H:%M:%S")
 				D_Temporary_Clients = dict()
 
 			if "x-config" in headers and "x-resolution" in headers:
@@ -144,8 +143,11 @@ def handle_command(headers, soc):
 
 						if "clients" in D_Temporary_Clients[str(p["d"])]:
 							local_resync = True
-							del D_stat_resync[D_stat_resync.index(t_session)]
-							print "[*][SYNC] Syncronizing #" + str(p["d"])
+
+								del D_stat_resync[D_stat_resync.index(t_session)]
+								print "[*][SYNC] Syncronizing #" + str(p["d"])
+							except Exception,e:
+								pass
 
 			#Handle ReSYNC
 			if D_resync <= datetime.datetime.now():

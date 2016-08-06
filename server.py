@@ -140,7 +140,7 @@ def handle_command(headers, soc):
 					t_interval = headers["x-config"].split("interval>>")[1].split(",")[0]
 					logging.info("API GET request for device: " + t_session)
 					if str(p["d"]) in D_Temporary_Clients and t_session in D_stat_resync:
-
+						
 						if "clients" in D_Temporary_Clients[str(p["d"])]:
 							local_resync = True
 

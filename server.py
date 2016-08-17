@@ -143,7 +143,7 @@ def handle_command(headers, soc):
 						
 						if "clients" in D_Temporary_Clients[str(p["d"])]:
 							local_resync = True
-
+							try:
 								del D_stat_resync[D_stat_resync.index(t_session)]
 								print "[*][SYNC] Syncronizing #" + str(p["d"])
 							except Exception,e:

@@ -207,7 +207,7 @@ class psi:
 		try:
 			logging.info("Updating PSI");
 			if API_KEY == None: return None;
-			file = urllib2.urlopen('http://www.api.nea.gov.sg/api/WebAPI?dataset=psi_update&keyref=' + API_KEY)
+			file = urllib2.urlopen('http://api.nea.gov.sg/api/WebAPI?dataset=psi_update&keyref=' + API_KEY)
 			data = file.read()
 			file.close()
 			return xmltodict.parse(data);

@@ -189,13 +189,14 @@ def ResetSync():
 	global D_resync_times
 	D_resync = datetime.datetime.now()
 	D_resync += datetime.timedelta(minutes = 2.8)
-	print "[+][SYNC] Next Syncronization at " + D_resync.strftime("%Y-%m-%d %H:%M:%S")
-	logging.info("Syncronizing Clients")
+	#print "[+][SYNC] Next Syncronization at " + D_resync.strftime("%Y-%m-%d %H:%M:%S")
+	logging.info("Syncronizing Clients" + D_resync.strftime("%Y-%m-%d %H:%M:%S"))
 	D_stat_resync = list()
 	D_resync_times = dict()
 	for c in D_Temporary_Clients:
 		if D_Temporary_Clients[c]["clients"] > 1:
-			print "[+][SYNC] preparing for Syncronization"
+			#print "[+][SYNC] preparing for Syncronization"
+			logging.info("preparing for Syncronization")
 			for i in D_Temporary_Clients[c]["clients"]:
 				D_stat_resync.append(i)
 
